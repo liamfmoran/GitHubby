@@ -18,18 +18,18 @@ class PageType(Enum):
 
 def start():
     """Main function that starts the multithreaded crawler."""
-
+    visited = set()
     with Pool(processes=4) as pool:
         manager = Manager()
         jobqueue = manager.Queue()
         jobqueue.put((PageType.USER, 'liamfmoran'))
         jobqueue.put((PageType.USER, 'williamorosky'))
         jobqueue.put((PageType.USER, 'krispekala'))
-        res = pool.apply_async(getinfo, (jobqueue,))
+        res = pool.apply_async(getinfo, (jobqueue, visited))
         res.get()
 
 
-def getinfo(jobqueue):
+def getinfo(jobqueue, visited):
     """Given request, scrape GitHub."""
     while not jobqueue.empty():
         req = jobqueue.get(True)
@@ -37,19 +37,19 @@ def getinfo(jobqueue):
         pagetype = req[0]
         item = req[1]
 
+        # Determine job type and call appropriate function
         res = {
             PageType.USER: jobuser,
             PageType.FOLLOWERS: jobfollowers
-        }[pagetype](jobqueue, item)
-
-        print(item, 'collected')
+        }[pagetype](jobqueue, item, visited)
 
 
-def jobfollowers(jobqueue, username):
+def jobfollowers(jobqueue, username, visited):
     """Adds more jobs to jobqueue from followers list."""
     followers = getfollowers(username)
     for user in followers:
-        jobqueue.put((PageType.USER, user))
+        if user not in visited:
+            jobqueue.put((PageType.USER, user))
 
 
 def getfollowers(username):
@@ -69,10 +69,13 @@ def getfollowers(username):
     return retval
 
 
-def jobuser(jobqueue, username):
+def jobuser(jobqueue, username, visited):
     """Adds more jobs to jobqueue and fetches user info."""
-    jobqueue.put((PageType.FOLLOWERS, username))
-    return getuser(username)
+    if username not in visited:
+        jobqueue.put((PageType.FOLLOWERS, username))
+        visited.add(username)
+        userinfo = getuser(username)
+        print(username, 'collected')
 
 
 def getuser(username):
