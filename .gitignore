@@ -102,3 +102,4 @@ ENV/
 
 #GitHub access token
 token.txt
+users.dat

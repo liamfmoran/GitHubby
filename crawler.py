@@ -1,16 +1,20 @@
 """Crawler module for collecting GitHub user information."""
 
-from multiprocessing import Lock, Manager, Pool 
+from multiprocessing import Lock, Manager, Pool
 from enum import Enum
 import json
-import os
+import sys
+# import os
 import time
 import requests
 
-TOKEN = ''
+
+TOKENINDEX = 0
 with open('token.txt', 'r') as tokenfile:
-    TOKEN = '?access_token=' + tokenfile.readline()
+    TOKENS = [line.rstrip() for line in tokenfile.readlines()]
 APIURL = 'https://api.github.com/'
+
+LOCK = Lock()
 
 
 class PageType(Enum):
@@ -26,52 +30,76 @@ class PageType(Enum):
 def start():
     """Main function that starts the multithreaded crawler."""
     visited = set()
-    
+
     # if os.path.isfile('users.dat') and False:
     #     with open('users.dat') as userfile:
     #         for line in userfile.readlines():
     #             visited.add(line.strip())
 
-    with Pool(processes=4) as pool:
+    with Pool(processes=4) as userpool, Pool(processes=4) as jobpool:
         manager = Manager()
         lock = manager.Lock()
         userqueue = manager.Queue()
-        userqueue.put((PageType.USER, 'liamfmoran'))
-        userqueue.put((PageType.USER, 'williamorosky'))
-        userqueue.put((PageType.USER, 'krispekala'))
-        res = pool.apply_async(getinfo, (userqueue, visited, lock))
-        res.get()
+        jobqueue = manager.Queue()
+
+        userqueue.put('liamfmoran')
+        userqueue.put('williamorosky')
+        userqueue.put('krispekala')
+
+        userres = userpool.apply_async(
+            getuserinfo, (userqueue, jobqueue, visited, lock))
+        jobres = jobpool.apply_async(
+            getjobinfo, (userqueue, jobqueue, visited, lock))
+
+        userres.get()
+        jobres.get()
 
 
-def getinfo(jobqueue, visited, lock):
-    """Given request, scrape GitHub."""
-    with open('usersadfsds.dat', 'w', 0) as userfile:
-        while not jobqueue.empty():
+def getuserinfo(userqueue, jobqueue, visited, lock):
+    """Given job from user queue, scrape GitHub."""
+    with open('users.dat', 'w') as userfile:
+        while True:
             # Busy wait to pause the crawler
             # while 'CRAWL' not in os.environ or os.environ['CRAWL'] is False:
             #     time.sleep(1)
 
-            req = jobqueue.get(True)
+            username = userqueue.get(True)
 
-            pagetype = req[0]
-            item = req[1]
+            completed = jobuser(jobqueue, username, visited)
 
-            # Determine job type and call appropriate function
-            completed = {
-                PageType.USER: jobuser,
-                PageType.FOLLOWERS: jobfollowers,
-                PageType.FOLLOWING: jobfollowing,
-                PageType.REPOS: jobrepos,
-                PageType.CONTRIBUTORS: jobcontributors,
-                PageType.STARGAZERS: jobstargazers
-            }[pagetype](jobqueue, item, visited)
-
-            if pagetype == PageType.USER and completed is not False:
+            if completed:
                 with lock:
-                    # json.dump(completed, userfile)
-                    pass
-                    
-            userfile.write('hello\n',)
+                    json.dump(completed, userfile)
+                    userfile.write('\n')
+                    userfile.flush()
+
+
+def getjobinfo(userqueue, jobqueue, visited, _):
+    """Given job from job queue, scrape GitHub."""
+    while True:
+        # Busy wait to pause the crawler
+        # while 'CRAWL' not in os.environ or os.environ['CRAWL'] is False:
+        #     time.sleep(1)
+
+        req = jobqueue.get(True)
+
+        pagetype = req[0]
+        item = req[1]
+
+        # Determine job type and call appropriate function
+        pair = {
+            PageType.FOLLOWERS: (jobfollowers, userqueue),
+            PageType.FOLLOWING: (jobfollowing, userqueue),
+            PageType.REPOS: (jobrepos, jobqueue),
+            PageType.CONTRIBUTORS: (jobcontributors, userqueue),
+            PageType.STARGAZERS: (jobstargazers, userqueue)
+        }[pagetype]
+
+        jobfunc = pair[0]
+        queue = pair[1]
+
+        jobfunc(queue, item, visited)
+
 
 # USER JOB
 
@@ -97,8 +125,8 @@ def jobuser(jobqueue, username, visited):
 
 def getuser(username):
     """Creates dictionary of necessary user information."""
-    request = APIURL + 'users/' + username + TOKEN
-    reqjson = requests.get(request).json()
+    request = APIURL + 'users/' + username
+    reqjson = gettoken(request)
 
     if 'message' in reqjson:
         print('ERROR:', reqjson['message'])
@@ -142,19 +170,19 @@ def parseuser(userjson):
 # FOLLOWER JOB
 
 
-def jobfollowers(jobqueue, username, visited):
+def jobfollowers(userqueue, username, visited):
     """Adds more jobs to jobqueue from followers list."""
+    sys.stdout.flush()
     followers = getfollowers(username)
     for user in followers:
         if (PageType.USER, user) not in visited:
-            jobqueue.put((PageType.USER, user))
-    return True
+            userqueue.put(user)
 
 
 def getfollowers(username):
     """Creates list of followers."""
-    request = APIURL + 'users/' + username + '/followers' + TOKEN
-    reqjson = requests.get(request).json()
+    request = APIURL + 'users/' + username + '/followers'
+    reqjson = gettoken(request)
 
     if 'message' in reqjson:
         print('ERROR:', reqjson['message'])
@@ -170,20 +198,19 @@ def getfollowers(username):
 # FOLLOWING JOB
 
 
-def jobfollowing(jobqueue, username, visited):
+def jobfollowing(userqueue, username, visited):
     """Adds more jobs to jobqueue from following list."""
     following = getfollowing(username)
     for user in following:
         if (PageType.USER, user) not in visited:
-            jobqueue.put((PageType.USER, user))
-    return True
+            userqueue.put(user)
 
 
 # Consider just making this a generic getuserlist method
 def getfollowing(username):
     """Creates list of leaders."""
-    request = APIURL + 'users/' + username + '/following' + TOKEN
-    reqjson = requests.get(request).json()
+    request = APIURL + 'users/' + username + '/following'
+    reqjson = gettoken(request)
 
     if 'message' in reqjson:
         print('ERROR:', reqjson['message'])
@@ -212,12 +239,11 @@ def jobrepos(jobqueue, username, visited):
             # If there are stargazers, add a job to get them
             if repo['stargazers_count'] > 0:
                 jobqueue.put((PageType.STARGAZERS, [username, repo['name']]))
-    return True
 
 
 def getrepos(username):
     """Creates a list of repos."""
-    request = APIURL + 'users/' + username + '/repos' + TOKEN
+    request = APIURL + 'users/' + username + '/repos'
     reqjson = requests.get(request).json()
 
     if 'message' in reqjson:
@@ -248,19 +274,18 @@ def parserepo(repojson):
 # CONTRIBUTOR JOB
 
 
-def jobcontributors(jobqueue, params, visited):
+def jobcontributors(userqueue, params, visited):
     """Adds more jobs to the jobqueue from repo's contributor list."""
     contributors = getcontributors(params[0], params[1])
     for contributor in contributors:
         if (PageType.USER, contributor) not in visited:
-            jobqueue.put((PageType.USER, contributor))
-    return True
+            userqueue.put(contributor)
 
 
 def getcontributors(username, repo):
     """Creates a list of users."""
-    request = APIURL + 'repos/' + username + '/' + repo + '/contributors' + TOKEN
-    reqjson = requests.get(request).json()
+    request = APIURL + 'repos/' + username + '/' + repo + '/contributors'
+    reqjson = gettoken(request)
 
     if 'message' in reqjson:
         print('ERROR:', reqjson['message'])
@@ -276,19 +301,18 @@ def getcontributors(username, repo):
 # STARGAZER JOB
 
 
-def jobstargazers(jobqueue, params, visited):
+def jobstargazers(userqueue, params, visited):
     """Adds more jobs to the jobqueue from repo's contributor list."""
     stargazers = getstargazers(params[0], params[1])
     for stargazer in stargazers:
         if (PageType.USER, stargazer) not in visited:
-            jobqueue.put((PageType.USER, stargazer))
-    return True
+            userqueue.put(stargazer)
 
 
 def getstargazers(username, repo):
     """Creates a list of users."""
-    request = APIURL + 'repos/' + username + '/' + repo + '/stargazers' + TOKEN
-    reqjson = requests.get(request).json()
+    request = APIURL + 'repos/' + username + '/' + repo + '/stargazers'
+    reqjson = gettoken(request)
 
     if 'message' in reqjson:
         print('ERROR:', reqjson['message'])
@@ -316,6 +340,23 @@ def getuserlist(url):
     for user in reqjson:
         retval.append(user['login'])
     return retval
+
+
+def gettoken(url):
+    """Gets token and switches token if max tries occurs."""
+    global TOKENINDEX
+
+    while True:
+        try:
+            request = url + '?access_token=' + TOKENS[TOKENINDEX]
+            reqjson = requests.get(request).json()
+            if 'message' in reqjson and reqjson['message'] == 'Bad credentials':
+                raise ConnectionError
+            return reqjson
+        except ConnectionError:
+            with LOCK:
+                TOKENINDEX = (TOKENINDEX + 1) % len(TOKENS)
+            time.sleep(1)
 
 
 # COLLABORATOR JOB - This does not work becuase push access is required with authentication
