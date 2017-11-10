@@ -60,7 +60,7 @@ def getuserinfo(userqueue, jobqueue, visited, lock):
     with open('users.dat', 'w') as userfile:
         while True:
             # Busy wait to pause the crawler
-            # while 'CRAWL' not in os.environ or os.environ['CRAWL'] is False:
+            # while 'CRAWL' not in os.environ or os.getenv() is False:
             #     time.sleep(1)
 
             username = userqueue.get(True)
@@ -128,10 +128,6 @@ def getuser(username):
     request = APIURL + 'users/' + username
     reqjson = gettoken(request)
 
-    if 'message' in reqjson:
-        print('ERROR:', reqjson['message'])
-        return {}
-
     return parseuser(reqjson)
 
 
@@ -144,25 +140,21 @@ def parseuser(userjson):
     retval['followers_url'] = userjson['followers_url']
     # Trim off '{/other_user}'
     retval['following_url'] = userjson['following_url'][:-13]
-    # Trim off '{/gist_id}'
-    retval['gists_url'] = userjson['gists_url'][:-10]
     # Trim off '{/owner}{/repo}'
     retval['starred_url'] = userjson['starred_url'][:-15]
     retval['subscriptions_url'] = userjson['subscriptions_url']
-    retval['organizations_url'] = userjson['organizations_url']
     retval['repos_url'] = userjson['repos_url']
+    retval['events_url'] = userjson['events_url']
     retval['name'] = userjson['name']
     retval['company'] = userjson['company']
     retval['blog'] = userjson['blog']
     retval['location'] = userjson['location']
     retval['bio'] = userjson['bio']
     retval['public_repos'] = userjson['public_repos']
-    retval['public_gists'] = userjson['public_gists']
     retval['followers'] = userjson['followers']
     retval['following'] = userjson['following']
     retval['created_at'] = userjson['created_at']
-
-    #TODO: Create a way to grab the GitHub graph from a user
+    retval['updated_at'] = userjson['updated_at']
 
     return retval
 
@@ -183,10 +175,6 @@ def getfollowers(username):
     """Creates list of followers."""
     request = APIURL + 'users/' + username + '/followers'
     reqjson = gettoken(request)
-
-    if 'message' in reqjson:
-        print('ERROR:', reqjson['message'])
-        return {}
 
     retval = []
     for follower in reqjson:
@@ -211,10 +199,6 @@ def getfollowing(username):
     """Creates list of leaders."""
     request = APIURL + 'users/' + username + '/following'
     reqjson = gettoken(request)
-
-    if 'message' in reqjson:
-        print('ERROR:', reqjson['message'])
-        return []
 
     retval = []
     for leader in reqjson:
@@ -246,10 +230,6 @@ def getrepos(username):
     request = APIURL + 'users/' + username + '/repos'
     reqjson = requests.get(request).json()
 
-    if 'message' in reqjson:
-        print('ERROR:', reqjson['message'])
-        return []
-
     retval = []
     for repo in reqjson:
         parsedrepo = parserepo(repo)
@@ -262,7 +242,7 @@ def parserepo(repojson):
     """Parses repo JSON for desired information."""
     retval = repojson
 
-    # TODO: Add info we need for repo here
+    retval['id'] = repojson['id']
     retval['name'] = repojson['name']
     retval['full_name'] = repojson['full_name']
     retval['size'] = repojson['size']
@@ -278,6 +258,7 @@ def jobcontributors(userqueue, params, visited):
     """Adds more jobs to the jobqueue from repo's contributor list."""
     contributors = getcontributors(params[0], params[1])
     for contributor in contributors:
+        # TODO: Remove this maybe because now we ignore type
         if (PageType.USER, contributor) not in visited:
             userqueue.put(contributor)
 
@@ -286,10 +267,6 @@ def getcontributors(username, repo):
     """Creates a list of users."""
     request = APIURL + 'repos/' + username + '/' + repo + '/contributors'
     reqjson = gettoken(request)
-
-    if 'message' in reqjson:
-        print('ERROR:', reqjson['message'])
-        return []
 
     retval = []
     for user in reqjson:
@@ -314,10 +291,6 @@ def getstargazers(username, repo):
     request = APIURL + 'repos/' + username + '/' + repo + '/stargazers'
     reqjson = gettoken(request)
 
-    if 'message' in reqjson:
-        print('ERROR:', reqjson['message'])
-        return []
-
     retval = []
     for user in reqjson:
         retval.append(user['login'])
@@ -331,10 +304,6 @@ def getstargazers(username, repo):
 def getuserlist(url):
     """Creates a list of users."""
     reqjson = requests.get(url).json()
-
-    if 'message' in reqjson:
-        print('ERROR:', reqjson['message'])
-        return []
 
     retval = []
     for user in reqjson:
@@ -350,7 +319,8 @@ def gettoken(url):
         try:
             request = url + '?access_token=' + TOKENS[TOKENINDEX]
             reqjson = requests.get(request).json()
-            if 'message' in reqjson and reqjson['message'] == 'Bad credentials':
+            if 'message' in reqjson:
+                print('ERROR:', reqjson['message'])
                 raise ConnectionError
             return reqjson
         except ConnectionError:
