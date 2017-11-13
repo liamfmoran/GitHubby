@@ -38,7 +38,8 @@ def start():
 
     with Pool(processes=4) as userpool, Pool(processes=4) as jobpool:
         manager = Manager()
-        lock = manager.Lock()
+        userlock = manager.Lock()
+        joblock = manager.Lock()
         userqueue = manager.Queue()
         jobqueue = manager.Queue()
 
@@ -47,9 +48,9 @@ def start():
         userqueue.put('krispekala')
 
         userres = userpool.apply_async(
-            getuserinfo, (userqueue, jobqueue, visited, lock))
+            getuserinfo, (userqueue, jobqueue, visited, userlock))
         jobres = jobpool.apply_async(
-            getjobinfo, (userqueue, jobqueue, visited, lock))
+            getjobinfo, (userqueue, jobqueue, visited, joblock))
 
         userres.get()
         jobres.get()
@@ -74,31 +75,36 @@ def getuserinfo(userqueue, jobqueue, visited, lock):
                     userfile.flush()
 
 
-def getjobinfo(userqueue, jobqueue, visited, _):
+def getjobinfo(userqueue, jobqueue, visited, lock):
     """Given job from job queue, scrape GitHub."""
-    while True:
-        # Busy wait to pause the crawler
-        # while 'CRAWL' not in os.environ or os.environ['CRAWL'] is False:
-        #     time.sleep(1)
+    with open('repos.dat', 'w') as repofile:
+        while True:
 
-        req = jobqueue.get(True)
+            req = jobqueue.get(True)
 
-        pagetype = req[0]
-        item = req[1]
+            pagetype = req[0]
+            item = req[1]
 
-        # Determine job type and call appropriate function
-        pair = {
-            PageType.FOLLOWERS: (jobfollowers, userqueue),
-            PageType.FOLLOWING: (jobfollowing, userqueue),
-            PageType.REPOS: (jobrepos, jobqueue),
-            PageType.CONTRIBUTORS: (jobcontributors, userqueue),
-            PageType.STARGAZERS: (jobstargazers, userqueue)
-        }[pagetype]
+            # Determine job type and call appropriate function
+            pair = {
+                PageType.FOLLOWERS: (jobfollowers, userqueue),
+                PageType.FOLLOWING: (jobfollowing, userqueue),
+                PageType.REPOS: (jobrepos, jobqueue),
+                PageType.CONTRIBUTORS: (jobcontributors, userqueue),
+                PageType.STARGAZERS: (jobstargazers, userqueue)
+            }[pagetype]
 
-        jobfunc = pair[0]
-        queue = pair[1]
+            jobfunc = pair[0]
+            queue = pair[1]
 
-        jobfunc(queue, item, visited)
+            completed = jobfunc(queue, item, visited)
+
+            if pagetype == PageType.REPOS and completed:
+                with lock:
+                    for repo in completed:
+                        json.dump(repo, repofile)
+                        repofile.write('\n')
+                        repofile.flush()
 
 
 # USER JOB
@@ -215,23 +221,25 @@ def jobrepos(jobqueue, username, visited):
     repos = getrepos(username)
     for repo in repos:
         if (PageType.REPOS, (username, repo['name'])) not in visited:
-            # If the repo is empty, skip it
-            if repo['size'] == 0:
-                continue
             # Begin putting all the info I want to get off of a repo here
             jobqueue.put((PageType.CONTRIBUTORS, [username, repo['name']]))
             # If there are stargazers, add a job to get them
             if repo['stargazers_count'] > 0:
                 jobqueue.put((PageType.STARGAZERS, [username, repo['name']]))
 
+    return repos
+
 
 def getrepos(username):
     """Creates a list of repos."""
     request = APIURL + 'users/' + username + '/repos'
-    reqjson = requests.get(request).json()
+    reqjson = gettoken(request)
 
     retval = []
     for repo in reqjson:
+        # If the repo is empty, skip it
+        if repo['size'] == 0:
+            continue
         parsedrepo = parserepo(repo)
         retval.append(parsedrepo)
 
@@ -240,13 +248,26 @@ def getrepos(username):
 
 def parserepo(repojson):
     """Parses repo JSON for desired information."""
-    retval = repojson
+    retval = {}
 
     retval['id'] = repojson['id']
     retval['name'] = repojson['name']
     retval['full_name'] = repojson['full_name']
+    retval['owner_login'] = repojson['owner']['login']
+    retval['owner_id'] = repojson['owner']['id']
+    retval['description'] = repojson['description']
+    retval['forks_url'] = repojson['forks_url']
+    retval['events_url'] = repojson['events_url']
+    retval['languages_url'] = repojson['languages_url']
+    retval['created_at'] = repojson['created_at']
+    retval['updated_at'] = repojson['updated_at']
+    retval['pushed_at'] = repojson['pushed_at']
     retval['size'] = repojson['size']
     retval['stargazers_count'] = repojson['stargazers_count']
+    retval['language'] = repojson['language']
+    retval['has_wiki'] = repojson['has_wiki']
+    retval['forks_count'] = repojson['forks_count']
+    retval['open_issues_count'] = repojson['open_issues_count']
 
     return retval
 
@@ -326,7 +347,7 @@ def gettoken(url):
         except ConnectionError:
             with LOCK:
                 TOKENINDEX = (TOKENINDEX + 1) % len(TOKENS)
-            time.sleep(1)
+            time.sleep(2)
 
 
 # COLLABORATOR JOB - This does not work becuase push access is required with authentication

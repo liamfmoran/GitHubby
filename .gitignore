@@ -100,6 +100,8 @@ ENV/
 # mypy
 .mypy_cache/
 
-#GitHub access token
+# GitHub access token and data files
 token.txt
 users.dat
+repos.dat
+usersrepos.dat

@@ -29,7 +29,17 @@
 | `description` | Used to show description of repo. |
 | `forks_url` | Projects that have been created from fork. |
 | `events_url` | Could be very useful for finding the importance of repositories. |
-| `` |  |
+| `languages_url` | Languages used in project. |
+| `created_at` | When the proejct was created. |
+| `updated_at` | When the project was last updated. |
+| `pushed_at` | When the project was last pushed to. |
+| `size` | The size of the repo. |
+| `stargazers_count` | Use Number of Stars to rank. |
+| `langauge` | Primary language of project. |
+| `has_wiki` | Whether or not the project has a wiki. |
+| `forks_count` | How many have forked his repo. |
+| `open_issues_count` | How many issues are currently open. |
+
 
 
 ### Idea
