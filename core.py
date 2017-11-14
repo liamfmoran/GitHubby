@@ -32,9 +32,11 @@ def rank_repo(men, info):
         score =0
         for l in fact[2]:
             if l['stargazers_count'] !=0:
-              score += math.log(l['stargazers_count'])
-              if l['open_issues_count'] !=0:
-                  score += (l['open_issues_count']/l['stargazers_count'])*math.log(l['stargazers_count'])
+                score += math.log(l['stargazers_count'])
+            if l['open_issues_count'] !=0:
+                score -= l['open_issues_count']/(1+l['stargazers_count'])* math.log10(l['stargazers_count'])
+        score = score/len(fact[2])
+        men[person] += score
                   
 
 
