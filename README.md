@@ -2,14 +2,20 @@
 
 _Like Tinder, but for women looking for commitment._
 
-## How to get started
+## How to get started (for checkpoint 2)
 
-### On Windows
+1. Install Python 3 with Pip
+2. Install `gender-guesser` with the command `pip3 install gender-guesser`
+3. Run `core.py` with `python3 core.py`
+
+### Web App
+
+#### On Windows
 
 1. On CMD, enter `set FLASK_APP=run.py` (or `$env:FLASK_APP="run.py")
 2. Run `flask run`
 
-### On Mac
+#### On Mac
 
 1. On Terminal, enter `export FLASK_APP=run.py`
 2. Run `flask run`

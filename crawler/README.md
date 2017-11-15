@@ -41,7 +41,6 @@
 | `open_issues_count` | How many issues are currently open. |
 
 
-
 ### Idea
 
 We should use a database system with IDs to grab info. Then when a user has some repos, we can use them to grab the appropriate info.
