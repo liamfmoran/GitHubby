@@ -8,39 +8,95 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <!-- CSS -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<!--         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"> -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+
         <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,100,300,500">
         <link rel="stylesheet" href="../static/assets/bootstrap/css/bootstrap.min.css">
-        <link rel="stylesheet" href="../static/css/style.css">
-        <link rel="stylesheet" href="../static/css/dashboard.css">
+<!--         <link rel="stylesheet" href="../static/css/style.css">
+ -->        <link rel="stylesheet" href="../static/css/dashboard.css">
 
     </head>
 
     <body>
-
-        <!-- <div class="container">
-          <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-              <div class="card">
-                  <img src="img.jpg" alt="John" style="width:100%">
-                  <h1>John Doe</h1>
-                  <p class="title">CEO & Founder, Example</p>
-                  <p>Harvard University</p>
-                  <a href="#"><i class="fa fa-dribbble"></i></a> 
-                  <a href="#"><i class="fa fa-twitter"></i></a> 
-                  <a href="#"><i class="fa fa-linkedin"></i></a> 
-                  <a href="#"><i class="fa fa-facebook"></i></a> 
-                  <p><button>Contact</button></p>
-              </div>
-            </div>
-            <div class="col-md-8 col-md-offset-2">
-              One of three columns
-            </div>
-            <div class="col-md-8 col-md-offset-2">
-              One of three columns
+        <div class="row text-center">
+          <img id="header-img" class="center-block" src="../static/assets/img/Githubby_White.png">
+        </div>
+        <div class="col-md-10 col-md-offset-1">
+          <div class="card">
+            <h3 class="card-header">Welcome, Kristen!</h3>
+            <div class="card-block">
+              <h4 class="card-title">Your Matches</h4>
+              <p class="card-text"><br /></p>
+              <ul class="list-group list-group-flush">
+              <li class="list-group-item">
+                  <div style="display: inline-block">
+                    <img src="https://avatars3.githubusercontent.com/u/17077365?s=460&v=4" class="avatar" width="78" height="78">
+                  </div>
+                  <div style="display: inline-block; vertical-align: middle;">
+                    <div>
+                      <h4 class="name-text">Jonathon, 21</h4>
+                    </div>
+                    <div>
+                      <h6 class="sub-text">College Station, TX</h6>
+                    </div>
+                  </div>
+                  <div style="display: inline-block">
+                    <img src="http://ghchart.rshah.org/hinchley2018" class="github-chart" width="560" height="81"/>
+                  </div>
+                  <div style="display: inline-block">
+                    <a class="fork-button" href="">
+                      <img src="../static/assets/img/ForkHisRepo.png" width="143" height="51">
+                    </a>
+                  </div>
+              </li>
+              <li class="list-group-item">
+                  <div style="display: inline-block">
+                    <img src="https://avatars3.githubusercontent.com/u/11986243?s=460&v=4" class="avatar" width="78" height="78">
+                  </div>
+                  <div style="display: inline-block; vertical-align: middle;">
+                    <div>
+                      <h4 class="name-text">Will, 21</h4>
+                    </div>
+                    <div>
+                      <h6 class="sub-text">College Station, TX</h6>
+                    </div>
+                  </div>
+                  <div style="display: inline-block">
+                    <img src="http://ghchart.rshah.org/wflores96" class="github-chart" width="560" height="81"/>
+                  </div>
+                  <div style="display: inline-block">
+                    <a class="fork-button" href="">
+                      <img src="../static/assets/img/ForkHisRepo.png" width="143" height="51">
+                    </a>
+                  </div>
+              </li>
+              <li class="list-group-item">
+                  <div style="display: inline-block">
+                    <img src="https://avatars3.githubusercontent.com/u/14140947?s=460&v=4" class="avatar" width="78" height="78">
+                  </div>
+                  <div style="display: inline-block; vertical-align: middle;">
+                    <div>
+                      <h4 class="name-text">Colton, 21</h4>
+                    </div>
+                    <div>
+                      <h6 class="sub-text">College Station, TX</h6>
+                    </div>
+                  </div>
+                  <div style="display: inline-block">
+                    <img src="http://ghchart.rshah.org/coltonweaver" class="github-chart" width="560" height="81"/>
+                  </div>
+                  <div style="display: inline-block">
+                    <a class="fork-button" href="">
+                      <img src="../static/assets/img/ForkHisRepo.png" width="143" height="51">
+                    </a>
+                  </div>
+              </li>
+              </ul>
             </div>
           </div>
-        </div> -->
+        </div>
+
         <canvas id="canvas"></canvas>
 
         <!-- Javascript -->
