@@ -18,9 +18,11 @@ body {
     background: transparent;
 }
 
-#header-img {
-    width: 412px;
-    height: 88px;
+#header-img { 
+    max-width: 412px;
+    max-height: 88px;
+    width: 88%;
+    height: 18.8%;
     text-align: center;
 }
 
