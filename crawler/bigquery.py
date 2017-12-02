@@ -50,6 +50,8 @@ REPOSCHEMA = (
     bigquery.SchemaField('open_issues_count', 'INTEGER', mode='required'),
 )
 
+DUMPSIZE = 1000
+
 class BigQuery:
 
     def __init__(self):
@@ -76,22 +78,37 @@ class BigQuery:
 
         # tables = list(bigquery_client.list_dataset_tables(dataset))
 
-        table_users = self.client.create_table(table_users)
-        table_repos = self.client.create_table(table_repos)
+        # table_users = self.client.create_table(table_users)
+        # table_repos = self.client.create_table(table_repos)
 
         self.table_users = self.client.get_table(table_users)
         self.table_repos = self.client.get_table(table_repos)
 
+        self.dump_user = []
+        self.dump_repo = []
+
 
     def insertrepo(self, rows):
-        errors = self.client.create_rows(self.table_repos, rows)
-        if errors != []:
-            print(rows)
-            print(errors)
+        """Inserts repo rows in buffer to be sent to BigQuery."""
+        self.dump_repo += rows
+
+        if len(rows) > DUMPSIZE:
+            errors = self.client.create_rows(self.table_repos, self.dump_repo)
+            print('Took a repo dump')
+            self.dump_repo = []
+            if errors != []:
+                print(rows)
+                print(errors)
 
 
     def insertuser(self, rows):
-        errors = self.client.create_rows(self.table_users, rows)
-        if errors != []:
-            print(rows)
-            print(errors)
+        """Inserts user rows in buffer to be sent to BigQuery."""
+        self.dump_user += rows
+
+        if len(rows) > DUMPSIZE:
+            errors = self.client.create_rows(self.table_users, self.dump_user)
+            print('Took a user dump')
+            self.dump_user = []
+            if errors != []:
+                print(rows)
+                print(errors)
