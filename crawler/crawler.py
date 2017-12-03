@@ -1,20 +1,18 @@
 """Crawler module for collecting GitHub user information."""
 
-from multiprocessing import Lock, Manager, Pool
 from enum import Enum
 import json
+from queue import Queue
 import sys
-# import os
 import time
+import bigquery
 import requests
 
 
 TOKENINDEX = 0
-with open('token.txt', 'r') as tokenfile:
+with open('./token.txt', 'r') as tokenfile:
     TOKENS = [line.rstrip() for line in tokenfile.readlines()]
 APIURL = 'https://api.github.com/'
-
-LOCK = Lock()
 
 
 class PageType(Enum):
@@ -31,99 +29,70 @@ def start():
     """Main function that starts the multithreaded crawler."""
     visited = set()
 
-    # if os.path.isfile('users.dat') and False:
-    #     with open('users.dat') as userfile:
-    #         for line in userfile.readlines():
-    #             visited.add(line.strip())
+    bq = bigquery.BigQuery()
 
-    with Pool(processes=4) as userpool, Pool(processes=4) as jobpool:
-        manager = Manager()
-        userlock = manager.Lock()
-        joblock = manager.Lock()
-        userqueue = manager.Queue()
-        jobqueue = manager.Queue()
+    queue = Queue()
 
-        userqueue.put('liamfmoran')
-        userqueue.put('williamorosky')
-        userqueue.put('krispekala')
+    queue.put((PageType.USER, 'liamfmoran'))
+    queue.put((PageType.USER, 'williamorosky'))
+    queue.put((PageType.USER, 'krispekala'))
 
-        userres = userpool.apply_async(
-            getuserinfo, (userqueue, jobqueue, visited, userlock))
-        jobres = jobpool.apply_async(
-            getjobinfo, (userqueue, jobqueue, visited, joblock))
-
-        userres.get()
-        jobres.get()
+    getinfo(queue, visited, bq)
 
 
-def getuserinfo(userqueue, jobqueue, visited, lock):
-    """Given job from user queue, scrape GitHub."""
-    with open('users.dat', 'w') as userfile:
-        while True:
-            # Busy wait to pause the crawler
-            # while 'CRAWL' not in os.environ or os.getenv() is False:
-            #     time.sleep(1)
-
-            username = userqueue.get(True)
-
-            completed = jobuser(jobqueue, username, visited)
-
-            if completed:
-                with lock:
-                    json.dump(completed, userfile)
-                    userfile.write('\n')
-                    userfile.flush()
-
-
-def getjobinfo(userqueue, jobqueue, visited, lock):
+def getinfo(queue, visited, bq):
     """Given job from job queue, scrape GitHub."""
-    with open('repos.dat', 'w') as repofile:
-        while True:
 
-            req = jobqueue.get(True)
+    while True:
+        req = queue.get()
 
-            pagetype = req[0]
-            item = req[1]
+        pagetype = req[0]
+        item = req[1]
 
-            # Determine job type and call appropriate function
-            pair = {
-                PageType.FOLLOWERS: (jobfollowers, userqueue),
-                PageType.FOLLOWING: (jobfollowing, userqueue),
-                PageType.REPOS: (jobrepos, jobqueue),
-                PageType.CONTRIBUTORS: (jobcontributors, userqueue),
-                PageType.STARGAZERS: (jobstargazers, userqueue)
-            }[pagetype]
+        # Determine job type and call appropriate function
+        pair = {
+            PageType.USER: (jobuser, queue),
+            PageType.FOLLOWERS: (jobfollowers, queue),
+            PageType.FOLLOWING: (jobfollowing, queue),
+            PageType.REPOS: (jobrepos, queue),
+            PageType.CONTRIBUTORS: (jobcontributors, queue),
+            PageType.STARGAZERS: (jobstargazers, queue)
+        }[pagetype]
 
-            jobfunc = pair[0]
-            queue = pair[1]
+        jobfunc = pair[0]
+        queue = pair[1]
 
-            completed = jobfunc(queue, item, visited)
+        completed = jobfunc(queue, item, visited)
 
-            if pagetype == PageType.REPOS and completed:
-                with lock:
-                    for repo in completed:
-                        json.dump(repo, repofile)
-                        repofile.write('\n')
-                        repofile.flush()
+        if pagetype == PageType.REPOS and completed:
+            rows = []
+            for repo in completed:
+                row = maptobq(repo, PageType.REPOS)
+                rows.append(row)
+            bq.insertrepo(rows)
+
+        if pagetype == PageType.USER and completed:
+            row = [ maptobq(completed, PageType.USER) ]
+            bq.insertuser(row)
 
 
 # USER JOB
 
 
-def jobuser(jobqueue, username, visited):
-    """Adds more jobs to jobqueue and fetches user info."""
+def jobuser(queue, username, visited):
+    """Adds more jobs to queue and fetches user info."""
     if (PageType.USER, username) in visited:
-        return False
+        return None
     userinfo = getuser(username)
     # If there are followers, add a job to get them
     if userinfo['followers'] > 0:
-        jobqueue.put((PageType.FOLLOWERS, username))
+        queue.put((PageType.FOLLOWERS, username))
     # If there are following, add a job to get them
     if userinfo['following'] > 0:
-        jobqueue.put((PageType.FOLLOWING, username))
+        queue.put((PageType.FOLLOWING, username))
     # If there are repos, add a job to get them
     if userinfo['public_repos'] > 0:
-        jobqueue.put((PageType.REPOS, username))
+        queue.put((PageType.REPOS, username))
     visited.add((PageType.USER, username))
     # print(str(len(visited)) + ':', username, 'collected')
     return userinfo
@@ -150,12 +119,13 @@ def parseuser(userjson):
     retval['starred_url'] = userjson['starred_url'][:-15]
     retval['subscriptions_url'] = userjson['subscriptions_url']
     retval['repos_url'] = userjson['repos_url']
-    retval['events_url'] = userjson['events_url']
+    # Trim off '{/privacy}'
+    retval['events_url'] = userjson['events_url'][:-10]
     retval['name'] = userjson['name']
     retval['company'] = userjson['company']
     retval['blog'] = userjson['blog']
     retval['location'] = userjson['location']
-    retval['bio'] = userjson['bio']
+    retval['bio'] = None if userjson['bio'] == '' else userjson['bio']
     retval['public_repos'] = userjson['public_repos']
     retval['followers'] = userjson['followers']
     retval['following'] = userjson['following']
@@ -168,13 +138,13 @@ def parseuser(userjson):
 # FOLLOWER JOB
 
 
-def jobfollowers(userqueue, username, visited):
-    """Adds more jobs to jobqueue from followers list."""
+def jobfollowers(queue, username, visited):
+    """Adds more jobs to queue from followers list."""
     sys.stdout.flush()
     followers = getfollowers(username)
     for user in followers:
         if (PageType.USER, user) not in visited:
-            userqueue.put(user)
+            queue.put((PageType.USER, user))
 
 
 def getfollowers(username):
@@ -192,12 +162,12 @@ def getfollowers(username):
 # FOLLOWING JOB
 
 
-def jobfollowing(userqueue, username, visited):
-    """Adds more jobs to jobqueue from following list."""
+def jobfollowing(queue, username, visited):
+    """Adds more jobs to queue from following list."""
     following = getfollowing(username)
     for user in following:
         if (PageType.USER, user) not in visited:
-            userqueue.put(user)
+            queue.put((PageType.USER, user))
 
 
 # Consider just making this a generic getuserlist method
@@ -216,16 +186,16 @@ def getfollowing(username):
 # REPO JOB
 
 
-def jobrepos(jobqueue, username, visited):
-    """Adds more jobs to the jobqueue from a user's repos list."""
+def jobrepos(queue, username, visited):
+    """Adds more jobs to the queue from a user's repos list."""
     repos = getrepos(username)
     for repo in repos:
         if (PageType.REPOS, (username, repo['name'])) not in visited:
             # Begin putting all the info I want to get off of a repo here
-            jobqueue.put((PageType.CONTRIBUTORS, [username, repo['name']]))
+            queue.put((PageType.CONTRIBUTORS, [username, repo['name']]))
             # If there are stargazers, add a job to get them
             if repo['stargazers_count'] > 0:
-                jobqueue.put((PageType.STARGAZERS, [username, repo['name']]))
+                queue.put((PageType.STARGAZERS, [username, repo['name']]))
 
     return repos
 
@@ -241,6 +211,10 @@ def getrepos(username):
         if repo['size'] == 0:
             continue
         parsedrepo = parserepo(repo)
+        request = parsedrepo['commits_url']
+        reqjson = gettoken(request)
+        # TODO: Convert JSON to String
+        parsedrepo['commits'] = json.dumps(parsecommits(reqjson))
         retval.append(parsedrepo)
 
     return retval
@@ -259,6 +233,8 @@ def parserepo(repojson):
     retval['forks_url'] = repojson['forks_url']
     retval['events_url'] = repojson['events_url']
     retval['languages_url'] = repojson['languages_url']
+    # Trim off '{/sha}'
+    retval['commits_url'] = repojson['commits_url'][:-6]
     retval['created_at'] = repojson['created_at']
     retval['updated_at'] = repojson['updated_at']
     retval['pushed_at'] = repojson['pushed_at']
@@ -272,16 +248,42 @@ def parserepo(repojson):
     return retval
 
 
+def parsecommits(commitsjson):
+    """Parses commits JSON for desired information."""
+    commitlist = []
+
+    for commit in commitsjson:
+        commitval = {}
+        if commit['author'] != None:
+            commitval['date'] = commit['commit']['author']['date']
+            commitval['user_id'] = commit['author']['id']
+
+        request = commit['url']
+        reqjson = gettoken(request)
+
+        (commitval['length'], commitval['stats']) = parsecommit(reqjson) 
+
+        commitlist.append(commitval)
+
+    return commitlist
+
+
+def parsecommit(commitjson):
+    """Parses tree JSON for desired information."""
+    retval = (len(commitjson['files']), commitjson['stats'])
+    return retval
+
+
 # CONTRIBUTOR JOB
 
 
-def jobcontributors(userqueue, params, visited):
-    """Adds more jobs to the jobqueue from repo's contributor list."""
+def jobcontributors(queue, params, visited):
+    """Adds more jobs to the queue from repo's contributor list."""
     contributors = getcontributors(params[0], params[1])
     for contributor in contributors:
         # TODO: Remove this maybe because now we ignore type
         if (PageType.USER, contributor) not in visited:
-            userqueue.put(contributor)
+            queue.put((PageType.USER, contributor))
 
 
 def getcontributors(username, repo):
@@ -299,12 +301,12 @@ def getcontributors(username, repo):
 # STARGAZER JOB
 
 
-def jobstargazers(userqueue, params, visited):
-    """Adds more jobs to the jobqueue from repo's contributor list."""
+def jobstargazers(queue, params, visited):
+    """Adds more jobs to the queue from repo's contributor list."""
     stargazers = getstargazers(params[0], params[1])
     for stargazer in stargazers:
         if (PageType.USER, stargazer) not in visited:
-            userqueue.put(stargazer)
+            queue.put((PageType.USER, stargazer))
 
 
 def getstargazers(username, repo):
@@ -340,17 +342,33 @@ def gettoken(url):
         try:
             request = url + '?access_token=' + TOKENS[TOKENINDEX]
             reqjson = requests.get(request).json()
-            if 'message' in reqjson:
+            # We must check if committer is not in reqjson, because the commit JSON contains a message
+            if 'message' in reqjson and 'committer' not in reqjson:
                 print('ERROR:', reqjson['message'])
                 raise ConnectionError
             return reqjson
         except ConnectionError:
-            with LOCK:
-                TOKENINDEX = (TOKENINDEX + 1) % len(TOKENS)
+            TOKENINDEX = (TOKENINDEX + 1) % len(TOKENS)
             time.sleep(2)
 
 
-# COLLABORATOR JOB - This does not work becuase push access is required with authentication
+# UTIL
+
+USERCOLS = ['id', 'login', 'avatar_url', 'followers_url', 'following_url', 'starred_url', 'subscriptions_url', 'repos_url', 'events_url', 'name', 'company', 'blog', 'location', 'bio', 'public_repos', 'followers', 'following', 'created_at', 'updated_at']
+REPOCOLS = ['id', 'name', 'full_name', 'owner_login', 'owner_id', 'description', 'forks_url', 'events_url', 'languages_url', 'commits_url', 'commits', 'created_at', 'updated_at', 'pushed_at', 'size', 'stargazers_count', 'language', 'has_wiki', 'forks_count', 'open_issues_count']
+
+def maptobq(itemmap, itemtype):
+    """Takes a map and converts it to a tuple for BigQuery."""
+    retval = None
+
+    if itemtype == PageType.USER:
+        retval = [ itemmap[col] for col in USERCOLS ]
+    else:
+        retval = [ itemmap[col] for col in REPOCOLS ]
+
+    return tuple(retval)
+
+
 
 
 if __name__ == "__main__":
