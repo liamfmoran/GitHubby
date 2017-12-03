@@ -1,0 +1,64 @@
+.card {
+    margin: auto;
+    vertical-align: middle;
+    z-index: 2;
+}
+
+.list-group-item {
+    padding-right: 0px;
+}
+
+.avatar {
+    vertical-align: middle;
+    border-radius: 50%;
+    max-width: 78px;
+    max-height: 78px;
+    width: 5%;
+    height: auto;
+    margin-right: 15px;
+    margin-left: 0px;
+}
+
+.github-chart {
+    vertical-align: middle;
+    max-width: 560px;
+    max-height: 81px;
+    width: 60%;
+    height: auto;
+    margin-right: 5px;
+    margin-left: 25px;
+}
+
+.fork-button {
+    vertical-align: middle;
+    margin-right: 0px;
+    margin-left: 5px;
+}
+
+.fork-button-image {
+    vertical-align: middle;
+    max-width: 143px;
+    max-height: 51px;
+    width: 80%;
+    height: auto;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+
+#header-img {
+    margin-top: 25px;
+    margin-bottom: 25px;
+    width: 309px;
+    height: 66px;
+    text-align: center;
+    z-index: 3;
+}
+
+#canvas {
+    position: absolute;
+    left: 0px; 
+    top: 0px; 
+    margin: 0px; 
+    padding: 0px;
+    z-index: 1;
+}
