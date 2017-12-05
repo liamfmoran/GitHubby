@@ -50,10 +50,10 @@ REPOSCHEMA = (
     bigquery.SchemaField('open_issues_count', 'INTEGER', mode='required'),
 )
 
-DUMPSIZE = 1000
+DUMPSIZE = 200
 
 class BigQuery:
-
+    """Wrapper for Google's Big Query Python API Library."""
     def __init__(self):
         """Set up the Google BigQuery connection."""
         # Set up the environmental variable for Google API credentials
@@ -78,8 +78,8 @@ class BigQuery:
 
         # tables = list(bigquery_client.list_dataset_tables(dataset))
 
-        # table_users = self.client.create_table(table_users)
-        # table_repos = self.client.create_table(table_repos)
+        table_users = self.client.create_table(table_users)
+        table_repos = self.client.create_table(table_repos)
 
         self.table_users = self.client.get_table(table_users)
         self.table_repos = self.client.get_table(table_repos)
@@ -92,7 +92,7 @@ class BigQuery:
         """Inserts repo rows in buffer to be sent to BigQuery."""
         self.dump_repo += rows
 
-        if len(rows) > DUMPSIZE:
+        if len(self.dump_repo) > DUMPSIZE:
             errors = self.client.create_rows(self.table_repos, self.dump_repo)
             print('Took a repo dump')
             self.dump_repo = []
@@ -105,7 +105,7 @@ class BigQuery:
         """Inserts user rows in buffer to be sent to BigQuery."""
         self.dump_user += rows
 
-        if len(rows) > DUMPSIZE:
+        if len(self.dump_user) > DUMPSIZE:
             errors = self.client.create_rows(self.table_users, self.dump_user)
             print('Took a user dump')
             self.dump_user = []
