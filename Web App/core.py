@@ -1,6 +1,6 @@
 import json
 import math
-import sexmachine.detector as gender
+import gender_guesser.detector as gender
 import bigquery
 import os
 
@@ -30,10 +30,10 @@ def languages(men, info, importance):
         for l in his_langs:
             tots += (his_langs[l]-mean)**2
         var = float(tots)+1/len(his_langs)
-        men[person] += (importance*0.1) * float(1)/var
+        men[person] += (int(importance)*0.1) * float(1)/var
           
         
-    #eturn user_and_languages
+    #eturn user_and_language
 
 #TO DO: modify to query repo table
 def rank_repo(men, info,does_size_matter,do_you_want_kids,import_loyalty, privacy):
@@ -87,7 +87,11 @@ def rank_repo(men, info,does_size_matter,do_you_want_kids,import_loyalty, privac
                 men[guy] +=1 
     ## HOW IMPORTANT IS LOYALTY
         languages(men, loyalty, import_loyalty)
-    print(men)
+    res = dict((v, k) for k, v in men.items())
+    sort = sorted(res, reverse=True)[:10]
+    retval = [ { "id": res[guyd] for guyd in sort } ]
+    return [ res[x] for x in sorted(res, reverse=True)[:10] ]
+
 
 
 def find_a_hubby(): 
@@ -112,10 +116,13 @@ def find_a_hubby():
                 factors.append(line['followers'])
                 factors.append(line['repos_url'])
                 factors.append(line['created_at'])
+                factors.append(line['id'])
+                factors.append(line['name'])
+                factors.append(line['location'])
                 info[line['owner_login']] = factors
     celeb(men,info)
     
-    return men
+    return men, info
 ##USED FOR BIG QUERY PARSING IGNORE FOR NOW 
 def get_his_repos(men):
     bq = bigquery.BigQuery()
@@ -145,15 +152,22 @@ def get_his_repos(men):
     f1.close()
     return his_repos
 
-def them_repos_though(men,does_size_matter,do_you_want_kids,import_loyalty, privacy):
+def them_repos_though(men,info,does_size_matter,do_you_want_kids,import_loyalty, privacy):
   with open('repos.json') as data:
     repos = {}
+    mans = {}
     for line in data:
         s = json.loads(line)
+        mans[s['user']] = { 'id': info[s['user']][4], 'name': info[s['user']][5], 'username': s['user'], 'location': info[s['user']][6], 'email': 'godcoder@google.com'}
         repos[s['user']] = s['info']
 
-    rank_repo(men, repos,does_size_matter,do_you_want_kids,import_loyalty, privacy) 
-    #print(dets)
+    topmen = rank_repo(men, repos,does_size_matter,do_you_want_kids,import_loyalty, privacy) 
+
+    boyyyss = []
+    for man in topmen:
+        boyyyss.append(mans[man])
+    
+    return boyyyss
 
 
 

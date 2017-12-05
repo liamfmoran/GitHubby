@@ -3,17 +3,17 @@ import core
 
 def getMatches(preference, age, size, loyalty, attention, money, kids, privacy):
     matches = []
-    hubbies = find_a_hubby()
-    them_repos_though(hubbies,size,kids,loyalty, privacy)
+    hubbies, info = core.find_a_hubby()
+    men = core.them_repos_though(hubbies,info, size,kids,loyalty, privacy)[0:4]
 
-    user = {
-        "id" : "17077365",
-        "name": "Jonathon",
-        "username": "hinchley2018",
-        "location": "College Station, TX",
-        "email": "hinchley2018@tamu.edu"
-    }
+    # user = {
+    #     "id" : "17077365",
+    #     "name": "Jonathon",
+    #     "username": "hinchley2018",
+    #     "location": "College Station, TX",
+    #     "email": "hinchley2018@tamu.edu"
+    # }
 
-    matches.append(user)
+    # matches.append(user)
 
-    return matches
+    return men
