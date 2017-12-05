@@ -13,10 +13,6 @@ $('#login-button').click(function(){
   $(location).attr('href', '/showDashboard')
 });
 
-$('#submit-button').click(function(){
-  $(location).attr('href', '/showDashboard')
-});
-
 $(".next").click(function(){
   if(animating) return false;
   animating = true;
@@ -90,12 +86,25 @@ $(".previous").click(function(){
   });
 });
 
-// $(".submit").click(function(){
-//   $(location).attr('href', '/showDashboard');
-// })
+$("#submit-button").click(function(){
+  var matches;
+  $.ajax({
+    url: '/showDashboardAfterSubmission',
+    data: $('form').serialize(),
+    type: 'POST',
+    success: function(response){
+      matches = response;
+      $(location).attr('href', '/showDashboard/'+matches)
+    },
+    error: function(error){
+      console.log(error);
+    }
+  });  
+
+})
 
     
-    var HeartsBackground = {
+var HeartsBackground = {
   heartHeight: 60,
   heartWidth: 64,
   hearts: [],

@@ -29,52 +29,28 @@
               <h4 class="card-title">Your Matches</h4>
               <p class="card-text"><br /></p>
               <ul class="list-group list-group-flush">
-              <li class="list-group-item">
-                <img src="https://avatars3.githubusercontent.com/u/17077365?s=460&v=4" class="avatar" style="display: inline-block">
-                <div style="display: inline-block; vertical-align: middle;">
-                  <div>
-                    <h4 class="name-text">Jonathon, 21</h4>
+
+                {% for user in result %}
+                         
+                  <li class="list-group-item">
+                    <img src="https://avatars3.githubusercontent.com/u/{{ user['id'] }}?s=460&v=4" class="avatar" style="display: inline-block">
+                    <div style="display: inline-block; vertical-align: middle;">
+                      <div>
+                        <h4 class="name-text"> {{ user["name"] }} </h4>
+                    </div>
+                    <div>
+                      <h6 class="sub-text">{{ user["location"] }}</h6>
+                    </div>
                   </div>
-                  <div>
-                    <h6 class="sub-text">College Station, TX</h6>
-                  </div>
-                </div>
-                <img src="http://ghchart.rshah.org/hinchley2018" class="github-chart" style="display: inline-block"/>
-                <a class="fork-button" href="" style="display: inline-block">
-                  <img src="../static/assets/img/ForkHisRepo.png" class="fork-button-image" >
-                </a>
-              </li>
-              <li class="list-group-item">
-                  <img src="https://avatars3.githubusercontent.com/u/17077365?s=460&v=4" class="avatar" style="display: inline-block">
-                <div style="display: inline-block; vertical-align: middle;">
-                  <div>
-                    <h4 class="name-text">Jonathon, 21</h4>
-                  </div>
-                  <div>
-                    <h6 class="sub-text">College Station, TX</h6>
-                  </div>
-                </div>
-                <img src="http://ghchart.rshah.org/hinchley2018" class="github-chart" style="display: inline-block"/>
-                <a class="fork-button" href="" style="display: inline-block">
-                  <img src="../static/assets/img/ForkHisRepo.png" class="fork-button-image" >
-                </a>
-              </li>
-              <li class="list-group-item">
-                <img src="https://avatars3.githubusercontent.com/u/17077365?s=460&v=4" class="avatar" style="display: inline-block">
-                <div style="display: inline-block; vertical-align: middle;">
-                  <div>
-                    <h4 class="name-text">Jonathon, 21</h4>
-                  </div>
-                  <div>
-                    <h6 class="sub-text">College Station, TX</h6>
-                  </div>
-                </div>
-                <img src="http://ghchart.rshah.org/hinchley2018" class="github-chart" style="display: inline-block"/>
-                <a class="fork-button" href="" style="display: inline-block">
-                  <img src="../static/assets/img/ForkHisRepo.png" class="fork-button-image" >
-                </a>
-              </li>
-              </ul>
+                  <img src="http://ghchart.rshah.org/{{ user['username'] }}" class="github-chart" style="display: inline-block"/>
+                  <a class="fork-button" href="" style="display: inline-block">
+                    <img src="../static/assets/img/ForkHisRepo.png" class="fork-button-image" >
+                  </a>
+                  </li>
+                {% endfor %}
+
+                </ul>
+    
             </div>
           </div>
         </div>
