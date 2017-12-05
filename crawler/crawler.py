@@ -256,6 +256,7 @@ def parsecommits(commitsjson):
         commitval = {}
         if commit['author'] != None:
             commitval['date'] = commit['commit']['author']['date']
+            # FIXME: Key error with 'id' because user author does not contain ID
             commitval['user_id'] = commit['author']['id']
 
         request = commit['url']
@@ -348,8 +349,12 @@ def gettoken(url):
                 raise ConnectionError
             return reqjson
         except ConnectionError:
+            print('CONNECTION ERROR: Switching tokens')
             TOKENINDEX = (TOKENINDEX + 1) % len(TOKENS)
-            time.sleep(2)
+            time.sleep(30)
+        else:
+            print('UKNOWN ERROR')
+            time.sleep(30)
 
 
 # UTIL
