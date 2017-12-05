@@ -100,9 +100,6 @@ ENV/
 # mypy
 .mypy_cache/
 
-# GitHub access token and data files
+# Access token and data files
 token.txt
-users.dat
-repos.dat
-# usersrepos.dat -- removing this temporarily
 creds.json
