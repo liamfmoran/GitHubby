@@ -8,8 +8,7 @@
         <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,100,300,500">
         <link rel="stylesheet" href="../static/assets/bootstrap/css/bootstrap.min.css">
         <link rel="stylesheet" href="../static/css/style.css">
-        <link rel="stylesheet" href="../static/css/slider.css">
-
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     </head>
 
     <body>
@@ -58,10 +57,11 @@
                     </label>
                 </label>
                 <p></p>
-                <label class="control-label">Age Range:</label>
-                <div class="slider slider-horizontal" style="width: 414px;">
-                    <input type="text" class="span2" value="" data-slider-min="-20" data-slider-max="40" data-slider-step="1" data-slider-value="-14" data-slider-orientation="vertical" data-slider-selection="after" data-slider-tooltip="hide">
-                </div>
+                <p>
+                  <label for="age-amount">Age Range:</label>
+                  <input type="text" id="age-amount" readonly style="border:0; color:#000000; font-weight:bold;">
+                </p>
+                <div id="slider-range"></div>
                 <p><br /></p>
                 <input type="button" name="previous" class="previous action-button-previous" value="Previous"/>
                 <input type="button" name="next" class="next action-button" value="Next"/>          
@@ -69,66 +69,127 @@
             <fieldset>
                 <h2 class="fs-title">Questionnaire</h2>
                 <h3 class="fs-subtitle">Let us know a little bit about yourself to help us tailor your experience.</h3>
-                <label class="control-label">Does size matter?
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="yes" value="yes">
-                        Yes
-                    </label>
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="no" value="no">
-                        No
-                    </label>
+                <label class="control-label">Does size matter?</label>
+                <p></p>
+                <label class="radio-inline">
+                    <input type="radio" name="size" id="yes" value="yes">
+                    Yes
                 </label>
-                <label class="control-label">How important is loyalty?
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="yes" value="yes">
-                        Yes
-                    </label>
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="no" value="no">
-                        No
-                    </label>
+                <label class="radio-inline">
+                    <input type="radio" name="size" id="no" value="no">
+                    No
                 </label>
-                <label class="control-label">How much attention do you require?
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="yes" value="yes">
-                        Yes
-                    </label>
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="no" value="no">
-                        No
-                    </label>
+                <p></p>
+                <label class="control-label">How important is loyalty?</label>
+                <p></p>
+                <span>Unimportant</span>
+                <label class="radio-inline">
+                    <input type="radio" name="loyalty" value="1">
+                    1
                 </label>
-                <label class="control-label">How important is money?
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="yes" value="yes">
-                        Yes
-                    </label>
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="no" value="no">
-                        No
-                    </label>
+                <label class="radio-inline">
+                    <input type="radio" name="loyalty" value="2">
+                    2
                 </label>
-                <label class="control-label">Do you want kids?
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="yes" value="yes">
-                        Yes
-                    </label>
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="no" value="no">
-                        No
-                    </label>
+                <label class="radio-inline">
+                    <input type="radio" name="loyalty" value="3">
+                    3
                 </label>
-                <label class="control-label">How important is privacy?
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="yes" value="yes">
-                        Yes
-                    </label>
-                    <label class="radio-inline">
-                        <input type="radio" name="size" id="no" value="no">
-                        No
-                    </label>
+                <label class="radio-inline">
+                    <input type="radio" name="loyalty" value="4">
+                    4
                 </label>
+                <label class="radio-inline">
+                    <input type="radio" name="loyalty" value="5">
+                    5
+                </label>
+                <span>Very Important</span>
+                <p></p>
+                <label class="control-label">How much attention do you require?</label>
+                <p></p>
+                <span>Unimportant</span>
+                <label class="radio-inline">
+                    <input type="radio" name="attention" value="1">
+                    1
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="attention" value="2">
+                    2
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="attention" value="3">
+                    3
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="attention" value="4">
+                    4
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="attention" value="5">
+                    5
+                </label>
+                <span>Very Important</span>
+                <p></p>
+                <label class="control-label">How important is money?</label>
+                <p></p>
+                <span>Unimportant</span>
+                <label class="radio-inline">
+                    <input type="radio" name="money" value="1">
+                    1
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="money" value="2">
+                    2
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="money" value="3">
+                    3
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="money" value="4">
+                    4
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="money" value="5">
+                    5
+                </label>
+                <span>Very Important</span>
+                <p></p>
+                <label class="control-label">Do you want kids?</label>
+                <p></p>
+                <label class="radio-inline">
+                    <input type="radio" name="kids" id="yes" value="yes">
+                    Yes
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="kids" id="no" value="no">
+                    No
+                </label>
+                <p></p>
+                <label class="control-label">How important is privacy?</label>
+                <p></p>
+                <span>Unimportant</span>
+                <label class="radio-inline">
+                    <input type="radio" name="privacy" value="1">
+                    1
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="privacy" value="2">
+                    2
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="privacy" value="3">
+                    3
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="privacy" value="4">
+                    4
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="privacy" value="5">
+                    5
+                </label>
+                <span>Very Important</span>
                 <p><br /></p>
                 <input type="button" name="previous" class="previous action-button-previous" value="Previous"/>
                 <input type="button" name="next" class="next action-button" value="Next"/>
@@ -150,6 +211,10 @@
         <script src="../static/js/jquery.backstretch.min.js"></script>
         <script src="../static/js/bootstrap-slider.js"></script>
         <script src="../static/js/scripts.js"></script>
+        <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script src="../static/js/signup.js"></script>
+
         <!--[if lt IE 10]>
             <script src="assets/js/placeholder.js"></script>
         <![endif]-->
