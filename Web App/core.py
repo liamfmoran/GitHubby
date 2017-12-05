@@ -1,6 +1,6 @@
 import json
 import math
-import gender_guesser.detector as gender
+import sexmachine.detector as gender
 import bigquery
 import os
 
@@ -13,7 +13,7 @@ def celeb(men, info):
             men[person] +=1
 
 #TO DO: modify to query repo table
-def languages(men, info):
+def languages(men, info, importance):
     for person in men:
         if person not in info:
             continue
@@ -30,13 +30,13 @@ def languages(men, info):
         for l in his_langs:
             tots += (his_langs[l]-mean)**2
         var = float(tots)+1/len(his_langs)
-        men[person] += float(1)/var
+        men[person] += (importance*0.1) * float(1)/var
           
         
     #eturn user_and_languages
 
 #TO DO: modify to query repo table
-def rank_repo(men, info):
+def rank_repo(men, info,does_size_matter,do_you_want_kids,import_loyalty, privacy):
     stff = {}
     dum = 0
     loyalty = {}
@@ -58,6 +58,9 @@ def rank_repo(men, info):
                 repo_length = l['length']
             ##DO YOU WANT KIDS/ HOW MANY KIDS
             fork_count = info[person][1]
+            if do_you_want_kids == 'yes':
+                men[person] += math.log10(fork_count+1)
+
             open_issues = info[person][2]
             stargazers_count = info[person][3]
             his_langs.append(info[person][4])
@@ -69,16 +72,21 @@ def rank_repo(men, info):
                 score = float(score)/(repo_length+1)
             info[person] = info[person][5:]
         men[person] += score
+        ##HOW IMPORTABT IS PRIVACY == NUM OF HIS REPOS
         stff[person] = float(stff[person])/num_repos
+
+        ##HOW IMPORTANT IS LOYALTY == LANGUAGE VARIANCE
         loyalty[person] = his_langs
     ## DOES SIZE MATTER?! 
-    mean = dum/len(stff)
-    for guy in stff:
-        if stff[guy] < mean :
-           men[guy] -= 1
-        if stff[guy] > mean :
-            men[guy] +=1 
-    languages(men, loyalty)
+    if does_size_matter == 'yes':
+        mean = dum/len(stff)
+        for guy in stff:
+            if stff[guy] < mean :
+                men[guy] -= 1
+            if stff[guy] > mean :
+                men[guy] +=1 
+    ## HOW IMPORTANT IS LOYALTY
+        languages(men, loyalty, import_loyalty)
     print(men)
 
 
@@ -137,20 +145,19 @@ def get_his_repos(men):
     f1.close()
     return his_repos
 
-def them_repos_though(men):
+def them_repos_though(men,does_size_matter,do_you_want_kids,import_loyalty, privacy):
   with open('repos.json') as data:
     repos = {}
     for line in data:
         s = json.loads(line)
         repos[s['user']] = s['info']
 
-    rank_repo (men, repos) 
+    rank_repo(men, repos,does_size_matter,do_you_want_kids,import_loyalty, privacy) 
     #print(dets)
 
 
 
-hubbies = find_a_hubby()
-them_repos_though(hubbies)
+
 #repos = get_his_repos(hubbies)
 
 # with open('repos.json') as data:

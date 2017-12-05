@@ -1,6 +1,11 @@
+import core
+
+
 def getMatches(preference, age, size, loyalty, attention, money, kids, privacy):
     matches = []
-    #This the format of a user. Just append all of the matches to the list and the front end does the rest.
+    hubbies = find_a_hubby()
+    them_repos_though(hubbies,size,kids,loyalty, privacy)
+
     user = {
         "id" : "17077365",
         "name": "Jonathon",
