@@ -4,42 +4,83 @@ import gender_guesser.detector as gender
 import bigquery
 import os
 
+
+##Popularity
 def celeb(men, info):
     for person in info:
         fact = info[person]
         if fact[0]<= fact[1]:
             men[person] +=1
-   
-def lots_of_repos(men,info):
-    for person in info:
-        fact = info[person]
-        if len(fact[2]) != 0:
-            men[person] += math.log10(len(fact[2]))
 
 #TO DO: modify to query repo table
-def languages(info):
-    user_and_languages = {}
-    for person in info:
-        langs = []
-        fact = info[person]
-        for l in fact[2]:
-            if l['language'] not in langs:
-                langs.append(l['language'])
-        user_and_languages[person] = langs
-    return user_and_languages
+def languages(men, info):
+    for person in men:
+        if person not in info:
+            continue
+        his_langs = {}
+        for i in info[person]:
+            if i not in his_langs:
+                his_langs[i] = 0
+            his_langs[i] +=1
+        sum1 = 0
+        for l in his_langs:
+            sum1 += his_langs[l]
+        mean = float(sum1)/len(his_langs)
+        tots = 0
+        for l in his_langs:
+            tots += (his_langs[l]-mean)**2
+        var = float(tots)+1/len(his_langs)
+        men[person] += float(1)/var
+          
+        
+    #eturn user_and_languages
 
 #TO DO: modify to query repo table
 def rank_repo(men, info):
+    stff = {}
+    dum = 0
+    loyalty = {}
     for person in info:
-        fact = info[person]
+        his_langs = []
         score =0
-        for l in fact[2]:
-            if l['stargazers_count'] !=0:
-                score += math.log(l['stargazers_count'])
-            if l['open_issues_count'] !=0:
-                score -= l['open_issues_count']/(1+l['stargazers_count'])* math.log10(1+l['stargazers_count'])
-                score = score/len(fact[2])
+        stff[person] = 0
+        if len(info[person]) == 0:
+            continue
+        while len(info[person]) != 0:
+            num_repos = 0
+            test = json.loads(info[person][0])
+            for l in test:
+                ## DOES SIZE MATTER
+                size = l['stats']['total']
+                stff[person] += size
+                num_repos += 1
+                dum += size
+                repo_length = l['length']
+            ##DO YOU WANT KIDS/ HOW MANY KIDS
+            fork_count = info[person][1]
+            open_issues = info[person][2]
+            stargazers_count = info[person][3]
+            his_langs.append(info[person][4])
+
+            if stargazers_count !=0:
+                 score += math.log(stargazers_count)
+            if open_issues !=0:
+                score -= float(open_issues)/(1+stargazers_count)* math.log10(1+stargazers_count)
+                score = float(score)/(repo_length+1)
+            info[person] = info[person][5:]
         men[person] += score
+        stff[person] = float(stff[person])/num_repos
+        loyalty[person] = his_langs
+    ## DOES SIZE MATTER?! 
+    mean = dum/len(stff)
+    for guy in stff:
+        if stff[guy] < mean :
+           men[guy] -= 1
+        if stff[guy] > mean :
+            men[guy] +=1 
+    languages(men, loyalty)
+    print(men)
+
 
 def find_a_hubby(): 
     d = gender.Detector()
@@ -74,7 +115,6 @@ def get_his_repos(men):
     his_repos = {}
     f1 = open('repos.json',"w+")
     for user in men: 
-        #print(user)
         query_job = bq.client.query("""
         SELECT *
         FROM `precise-tenure-184101.githubby.repos`
@@ -85,6 +125,8 @@ def get_his_repos(men):
             requirements.append(line['commits'])
             requirements.append(line['forks_count'])
             requirements.append(line['open_issues_count'])
+            requirements.append(line['stargazers_count'])
+            requirements.append(line['langauge'])
         his_repos[user] = requirements
         f1.write(json.dumps({"user":user, "info":his_repos[user]}))
         f1.write('\n')
@@ -96,34 +138,27 @@ def get_his_repos(men):
     return his_repos
 
 def them_repos_though(men):
-    with open('repos.json') as repos:
-        data = json.load(repos)
-        print(data)
-        for user in data:
-            print(data[user])
-            dets = data[user]
-    print(dets)
+  with open('repos.json') as data:
+    repos = {}
+    for line in data:
+        s = json.loads(line)
+        repos[s['user']] = s['info']
+
+    rank_repo (men, repos) 
+    #print(dets)
 
 
 
 hubbies = find_a_hubby()
-# f= open("hubbies.txt","w+")
-# for user in hubbies:
-#     f.write(user + ': ' + str(hubbies[user])+",")
-# f.close()
-#them_repos_though(hubbies)
-
-#f1 = open('repos.json',"w+")
-repos = get_his_repos(hubbies)
-#for i in repos:
-#    f1.write('\'userid\' :' + i +',\'info\': ' + repos[i])
-#f1.close()
-
+them_repos_though(hubbies)
+#repos = get_his_repos(hubbies)
 
 # with open('repos.json') as data:
+#     repos = {}
 #     for line in data:
 #         s = json.loads(line)
-#         print(s)
+#         repos[s['user']] = s['info']
+#     print(repos) 
 ##GOT ALL INFO FROM REPOS, CAN NOW DO OFFLINE ANALYSIS FOR HUBBY SCORE
 ##GOT DATA NEEDED FOR HUBBIES OTHER FEATURES, CAN NOW COMPUTE OFFLINE SCORE.
 ##LET'S EFFING GO
