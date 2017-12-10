@@ -1,8 +1,12 @@
 import json
 import math
 import gender_guesser.detector as gender
-import bigquery
+import sys
 import os
+
+sys.path.insert(0, './crawler/')
+
+import crawler
 
 
 ##Popularity

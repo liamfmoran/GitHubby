@@ -10,7 +10,7 @@ import requests
 
 
 TOKENINDEX = 0
-with open('./token.txt', 'r') as tokenfile:
+with open('./crawler/token.txt', 'r') as tokenfile:
     TOKENS = [line.rstrip() for line in tokenfile.readlines()]
 APIURL = 'https://api.github.com/'
 

@@ -1,9 +1,14 @@
 from flask import Flask, render_template, redirect, url_for, json, request, Response
 import random, subprocess
 import datetime
-import KristenCode
 
-app = Flask(__name__)
+# Other directory imports
+import sys
+sys.path.insert(0, './public/')
+
+import webapi
+
+app = Flask(__name__, static_folder='./public/static', template_folder='./public/templates')
 
 @app.route('/', methods=['POST','GET'])
 def main():
@@ -33,7 +38,7 @@ def showDashboardAfterSubmission():
     kids = request.form["kids"]
     privacy = request.form["privacy"]
 
-    matches = KristenCode.getMatches(preference, age, size, loyalty, attention, money, kids, privacy)
+    matches = webapi.getMatches(preference, age, size, loyalty, attention, money, kids, privacy)
     print(json.dumps(matches))
     return json.dumps(matches)
 
@@ -41,12 +46,9 @@ def showDashboardAfterSubmission():
 @app.route('/showDashboard/<matches>', methods=['POST','GET'])
 def showDashboard(matches):
     if matches:
-        print("matches " + str(matches))
         data  = json.loads(matches)
-        print(data)
         return render_template('dashboard.html', result=data)
     else:
-        print("yuh")
         return render_template('dashboard.html', result=[])
 
 if __name__ == '__main__':

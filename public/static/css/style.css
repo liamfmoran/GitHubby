@@ -16,6 +16,7 @@ html {
 body {
     font-family: montserrat, arial, verdana;
     background: transparent;
+    overflow: hidden;
 }
 
 #header-img { 
