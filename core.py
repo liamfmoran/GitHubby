@@ -6,15 +6,118 @@ import os
 
 sys.path.insert(0, './crawler/')
 
-import crawler
+import bigquery
+
+
+# TODO: Implement these metrics for score
+# PREFERENCE - Male/Female
+#     - This just filters based on girl/guy preference
+# AGE - 18-85
+#     - This uses age of account, this might be usless?
+# SIZE - Yes/No
+#     - Consider the size of the repo
+# LOYALTY - 1-5
+#     - Variance in languge use
+# ATTENTION - 1-5
+#     - Number of commits (how much attention they can give you)
+# MONEY - 1-5
+#     - Average pay for langauge
+# KIDS - Yes/No
+#     - Number of forks (higher possibility of getting prego)
+# PRIVACY - 1-5
+#     - Public vs private repos
+
+# NOTE: Maybe we should use this to hold information from a user?
+class Score:
+    """Scores across features for individual users."""
+
+    def __init__(self, userrow):
+
+        # Gender preference
+        self.ismale = False
+
+        # Size
+        self.scoresize = 0
+        self.weightsize = 1
+
+        # Loyalty
+        self.scoreloyalty = 0
+        self.weightloyalty = 1
+
+        # Attention
+        self.scoreattention = 0
+        self.weightattention = 1
+
+        # Money
+        self.scoremoney = 0
+        self.weightmoney = 1
+
+        # Kids
+        self.scorekids = 0
+        self.weightkids = 1
+
+        # Privacy
+        self.scoreprivacy = 0
+        self.weightprivacy = 1
+
+
+    def getsize(self):
+        # Consider number of commits
+        # TODO: Finish this shit here
+        pass
+
+
+    def getloyalty(self):
+        # Consider variance of languages
+        pass
+
+
+bq = bigquery.BigQuery()
+
+maleusers = {}
+femaleusers = {}
+
+def query(preference, age, size, loyalty, attention, money, kids, privacy):
+    """Search for users in database."""
+    global maleusers, femaleusers
+    
+    # Get data if not cached
+    if maleusers == [] or femaleusers == []:
+        gd = gender.Detector()
+        maleusers, femaleusers = bq.queryall()
+
+    # Query by preference
+    users = None
+    if preference == 'Male':
+        if len(maleusers) == 0:
+            client = bq.client
+            # TODO: Query to get male users
+            pass
+        users = maleusers
+    # Otherwise, if preference is female
+    else:
+        if len(femaleusers) == 0:
+            # TODO: Query to get female users
+            pass
+        users = femaleusers
+
+    # Now we have the users, so let's get distances
 
 
 ##Popularity
 def celeb(men, info):
     for person in info:
         fact = info[person]
-        if fact[0]<= fact[1]:
-            men[person] +=1
+        if fact[0] <= fact[1]:
+            men[person] += 1
+
+
+def logistic(x, maxnnum):
+    """Normalizes a value to be between 1 and maxnum."""
+    val = maxnum / (1 + math.exp(-x))
+    return int(val+1)
+
+
 
 #TO DO: modify to query repo table
 def languages(men, info, importance):
@@ -34,7 +137,8 @@ def languages(men, info, importance):
         for l in his_langs:
             tots += (his_langs[l]-mean)**2
         var = float(tots)+1/len(his_langs)
-        men[person] += (int(importance)*0.1) * float(1)/var
+        var = logistic(var)
+        men[person] += var
           
         
     #eturn user_and_language
@@ -54,28 +158,26 @@ def rank_repo(men, info,does_size_matter,do_you_want_kids,import_loyalty, privac
             num_repos = 0
             test = json.loads(info[person][0])
             for l in test:
-                ## DOES SIZE MATTER
+                ## DOES SIZE MATTER 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
                 size = l['stats']['total']
                 stff[person] += size
                 num_repos += 1
                 dum += size
                 repo_length = l['length']
-            ##DO YOU WANT KIDS/ HOW MANY KIDS
+            ##DO YOU WANT KIDS 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
             fork_count = info[person][1]
-            if do_you_want_kids == 'yes':
-                men[person] += math.log10(fork_count+1)
 
-            open_issues = info[person][2]
-            stargazers_count = info[person][3]
+            #open_issues = info[person][2]
+            #stargazers_count = info[person][3]
             his_langs.append(info[person][4])
 
-            if stargazers_count !=0:
-                 score += math.log(stargazers_count)
-            if open_issues !=0:
-                score -= float(open_issues)/(1+stargazers_count)* math.log10(1+stargazers_count)
-                score = float(score)/(repo_length+1)
-            info[person] = info[person][5:]
-        men[person] += score
+        #     if stargazers_count !=0:
+        #          score += math.log(stargazers_count)
+        #     if open_issues !=0:
+        #         score -= float(open_issues)/(1+stargazers_count)* math.log10(1+stargazers_count)
+        #         score = float(score)/(repo_length+1)
+        #     info[person] = info[person][5:]
+        # men[person] += score
         ##HOW IMPORTABT IS PRIVACY == NUM OF HIS REPOS
         stff[person] = float(stff[person])/num_repos
 
@@ -98,7 +200,14 @@ def rank_repo(men, info,does_size_matter,do_you_want_kids,import_loyalty, privac
 
 
 
-def find_a_hubby(): 
+def find_a_hubby():
+    """Queries BigQuery and gets data from men and initalizes score."""
+    # TODO: I think BigQuery.queryall can just be called now wihch will sort by gender
+    # NOTE: The above should only be done if the local dictionaries are empty
+    
+    bq = bigquery.BigQuery()
+    male, female = bq.queryall()
+
     d = gender.Detector()
     men = {}
     info = {}
@@ -149,10 +258,6 @@ def get_his_repos(men):
         his_repos[user] = requirements
         f1.write(json.dumps({"user":user, "info":his_repos[user]}))
         f1.write('\n')
-        #print(his_repos)
-      
-        #f1.write('\"'+ str(user) + '\":' + str(requirements)+'\n')
-    #f1.write(str(his_repos))
     f1.close()
     return his_repos
 

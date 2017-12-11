@@ -1,9 +1,7 @@
-from flask import Flask, render_template, redirect, url_for, json, request, Response
-import random, subprocess
-import datetime
+import sys
+from flask import Flask, render_template, json, request
 
 # Other directory imports
-import sys
 sys.path.insert(0, './public/')
 
 import webapi
