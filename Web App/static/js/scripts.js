@@ -87,22 +87,34 @@ $(".previous").click(function(){
 });
 
 $("#submit-button").click(function(){
+
   var matches;
+  var survey = [];
+
+  for (i=1; i<=$(".rb").length; i++) {
+    var rbValue = $("#rb-"+i).find(".rb-tab-active").attr("data-value");
+    survey.push([i, rbValue]);
+  };
+
   $.ajax({
-    url: '/showDashboardAfterSubmission',
-    data: $('form').serialize(),
-    type: 'POST',
-    success: function(response){
-      matches = response;
-      $(location).attr('href', '/showDashboard/'+matches)
-    },
-    error: function(error){
-      console.log(error);
-    }
-  });  
+      url: '/showDashboardAfterSubmission',
+            contentType: "application/json",
+            dataType: 'json',
+      type: 'POST',
+            data: JSON.stringify({
+                radio_entries: survey,
+                form: $('form').serializeArray()
+            }),
+      success: function(response){
+        matches = JSON.stringify(response);
+        $(location).attr('href', '/showDashboard/'+matches)
+      },
+      error: function(error){
+        console.log(error);
+      }
+    });
 
 })
-
     
 var HeartsBackground = {
   heartHeight: 60,

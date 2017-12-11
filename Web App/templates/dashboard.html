@@ -24,13 +24,13 @@
         </div>
         <div class="col-md-10 col-md-offset-1">
           <div class="card">
-            <h3 class="card-header">Welcome, Kristen!</h3>
+            <h3 class="card-header">Welcome, {{result["name"]}}!</h3>
             <div class="card-block">
               <h4 class="card-title">Your Matches</h4>
               <p class="card-text"><br /></p>
               <ul class="list-group list-group-flush">
 
-                {% for user in result %}
+                {% for user in result["matches"] %}
                          
                   <li class="list-group-item">
                     <img src="https://avatars3.githubusercontent.com/u/{{ user['id'] }}?s=460&v=4" class="avatar" style="display: inline-block">
@@ -43,7 +43,7 @@
                     </div>
                   </div>
                   <img src="http://ghchart.rshah.org/{{ user['username'] }}" class="github-chart" style="display: inline-block"/>
-                  <a class="fork-button" href="" style="display: inline-block">
+                  <a class="fork-button" href="mailto:{{ user['email'] }}" style="display: inline-block">
                     <img src="../static/assets/img/ForkHisRepo.png" class="fork-button-image" >
                   </a>
                   </li>

@@ -15,27 +15,38 @@ def showSignUp():
 
 @app.route('/showDashboardAfterSubmission', methods=['POST','GET'])
 def showDashboardAfterSubmission():
-    #unimportant
-    fname = request.form["fname"]
-    lname = request.form["lname"]  
-    email = request.form["email"]
-    password = request.form["pass"]
-    cpass = request.form["cpass"]
-    gender = request.form["gender"]  
-    preference = request.form["preference"]
+    data_json = request.json
+    radio_entries = data_json['radio_entries']
+    form_inputs = data_json['form']
 
-    #used for query
-    age = request.form["age-amount"]
-    size = request.form["size"]
-    loyalty = request.form["loyalty"]
-    attention = request.form["attention"]
-    money = request.form["money"]
-    kids = request.form["kids"]
-    privacy = request.form["privacy"]
 
-    matches = KristenCode.getMatches(preference, age, size, loyalty, attention, money, kids, privacy)
-    print(json.dumps(matches))
-    return json.dumps(matches)
+    fname = ""
+    lname = "" 
+    age = ""
+
+    for input in form_inputs:
+        if input['name'] == "fname":
+            fname = input['value']
+        elif input['name'] == "lname":
+            lname = input['value']
+        elif input['name'] == "age-amount":
+            age = input['value']
+
+    gender = radio_entries[0][1]  
+    preference = radio_entries[1][1]
+    size = radio_entries[2][1]
+    loyalty = radio_entries[3][1]
+    attention = radio_entries[4][1]
+    money = radio_entries[5][1]
+    kids = radio_entries[6][1]
+    privacy = radio_entries[7][1]
+
+    data = {
+        "name": fname,
+        "matches": []
+    }
+    data["matches"] = KristenCode.getMatches(preference, age, size, loyalty, attention, money, kids, privacy)
+    return json.dumps(data)
 
 @app.route('/showDashboard', defaults = {'matches':[]}, methods=['POST','GET'])
 @app.route('/showDashboard/<matches>', methods=['POST','GET'])
@@ -46,7 +57,6 @@ def showDashboard(matches):
         print(data)
         return render_template('dashboard.html', result=data)
     else:
-        print("yuh")
         return render_template('dashboard.html', result=[])
 
 if __name__ == '__main__':
