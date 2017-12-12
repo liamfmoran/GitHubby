@@ -75,6 +75,10 @@ def logistic(x, maxnnum):
     val = maxnum / (1 + math.exp(-x))
     return int(val+1)
 
+def normalizer(x, maxval, minval):
+    val = int((x-minval)/(maxval-minval)*5)+1
+    return 5 if val > 5 else val
+
 def normalize(x, max, min):
     if(x > max):
         x = max
@@ -86,6 +90,7 @@ def normalize(x, max, min):
 #TO DO: modify to query repo table
 def languages(languages, mate):
     all_langs = {}
+    vals = []
     for language in languages:
         rating = 0
         if len(languages) == 0:
@@ -97,8 +102,24 @@ def languages(languages, mate):
         all_langs[language] +=1
         if len(all_langs) > 1:
             var = statistics.variance([all_langs[x] for x in all_langs],statistics.mean([all_langs[x] for x in all_langs]))
-            
-            print(var)
+            vals.append(var)
+
+    if len(vals) > 1:
+        maxval = max(vals)
+        minval = min(vals)
+
+        # print(':', val, maxval, minval, normalizer(val, maxval, minval))
+        vals = [normalizer(val, maxval, minval) for val in vals]
+
+        for val in vals:
+            print(val)
+
+        # vals = [normalizer(x, maxval, minval) for x in vals]
+
+    # for val in vals:
+    #   print('val:', val)
+
+
     # print('mate: ',mate)
     # print(all_langs)
 
