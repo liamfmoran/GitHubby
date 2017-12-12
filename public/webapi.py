@@ -6,7 +6,7 @@ import core
 
 
 def getMatches(preference, age, size, loyalty, attention, money, kids, privacy):
-    matches = core.find_a_hubby(preference, size, loyalty, kids, money, attention)[:5]
+    matches = core.find_a_hubby(preference, size, loyalty, kids, money, attention)
 
     # user = {
     #     "id" : "17077365",

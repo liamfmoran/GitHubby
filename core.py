@@ -243,7 +243,7 @@ def find_a_hubby(preference,size,loyalty,kids,salary,attention):
         val['name'] = users[user[0]][9]
         val['username'] = users[user[0]][1]
         val['location'] = users[user[0]][12]
-        val['email'] = 'email@gmail.com'
+        val['email'] = users[user[0]][1] + '@github.com'
         retval.append(val)
 
     return retval
