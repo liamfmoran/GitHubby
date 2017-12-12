@@ -12,12 +12,12 @@ _Like Tinder, but for women looking for commitment._
 
 #### On Windows
 
-1. On CMD, enter `set FLASK_APP=run.py` (or `$env:FLASK_APP="run.py")
+1. On CMD, enter `set FLASK_APP=app.py` (or `$env:FLASK_APP="app.py"`)
 2. Run `flask run`
 
 #### On Mac
 
-1. On Terminal, enter `export FLASK_APP=run.py`
+1. On Terminal, enter `export FLASK_APP=app.py`
 2. Run `flask run`
 
 ## Features

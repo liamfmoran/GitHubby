@@ -1,7 +1,8 @@
 """Connection to Google BigQuery."""
 
-from google.cloud import bigquery
 import os
+from google.cloud import bigquery
+import gender_guesser.detector as gender
 
 
 USERSCHEMA = (
@@ -53,11 +54,11 @@ REPOSCHEMA = (
 DUMPSIZE = 1000
 
 class BigQuery:
-
+    """Instance of Google BigQuery."""
     def __init__(self):
         """Set up the Google BigQuery connection."""
         # Set up the environmental variable for Google API credentials
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './creds.json'
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './crawler/creds.json'
 
         self.client = bigquery.Client()
         dataset_id = 'githubby'
@@ -112,3 +113,49 @@ class BigQuery:
             if errors != []:
                 print(rows)
                 print(errors)
+
+
+    def queryall(self):
+        """Gets all users and repos from BigQuery. Comes back in the format:
+            male: { ownerlogin: [user data..., repos: [list of [repo data...]]] }
+            female: { ownerlogin: [user data..., repos: [list of [repo data...]]] }
+        """
+        userjob = self.client.query('SELECT * FROM `precise-tenure-184101.githubby.users`')
+        users = userjob.result()
+
+        repojob = self.client.query('SELECT * FROM `precise-tenure-184101.githubby.repos`')
+        repos = repojob.result()
+
+        maleresults = {}
+        femaleresults = {}
+
+        # Get all user info
+        gd = gender.Detector()
+        for user in users:
+            name = user['name']
+            # Assume male by default
+            results = maleresults
+            # Identify gender if available, otherwise stick with default
+            if name is not None and not name.isspace():
+                firstname = name.split()[0]
+                sex = gd.get_gender(firstname)
+                if 'female' in sex:
+                    results = femaleresults
+            ownerlogin = user['owner_login']
+            user = [val for val in user]
+            results[ownerlogin] = user
+            user.append([])
+
+        # Get all repo info
+        for repo in repos:
+            #if 'owner_login' in repo:
+            ownerlogin = repo['owner_login']
+                # Add repo to male user
+            repo = [val for val in repo]
+            if ownerlogin in maleresults:
+                maleresults[ownerlogin][-1].append(repo)
+            # Add repo to female user
+            elif ownerlogin in femaleresults:
+                femaleresults[ownerlogin][-1].append(repo)
+
+        return maleresults, femaleresults

@@ -1,9 +1,12 @@
-from flask import Flask, render_template, redirect, url_for, json, request, Response
-import random, subprocess
-import datetime
-import KristenCode
+import sys
+from flask import Flask, render_template, json, request
 
-app = Flask(__name__)
+# Other directory imports
+sys.path.insert(0, './public/')
+
+import webapi
+
+app = Flask(__name__, static_folder='./public/static', template_folder='./public/templates')
 
 @app.route('/', methods=['POST','GET'])
 def main():
@@ -45,16 +48,14 @@ def showDashboardAfterSubmission():
         "name": fname,
         "matches": []
     }
-    data["matches"] = KristenCode.getMatches(preference, age, size, loyalty, attention, money, kids, privacy)
+    data["matches"] = webapi.getMatches(preference, age, size, loyalty, attention, money, kids, privacy)
     return json.dumps(data)
 
 @app.route('/showDashboard', defaults = {'matches':[]}, methods=['POST','GET'])
 @app.route('/showDashboard/<matches>', methods=['POST','GET'])
 def showDashboard(matches):
     if matches:
-        print("matches " + str(matches))
         data  = json.loads(matches)
-        print(data)
         return render_template('dashboard.html', result=data)
     else:
         return render_template('dashboard.html', result=[])
