@@ -148,14 +148,17 @@ class BigQuery:
 
         # Get all repo info
         for repo in repos:
-            if 'owner_login' in repo:
-                ownerlogin = repo['owner_login']
+            #print('enter')
+            #if 'owner_login' in repo:
+            ownerlogin = repo['owner_login']
                 # Add repo to male user
-                repo = [val for val in repo]
-                if ownerlogin in maleresults:
-                    maleresults[ownerlogin]['repos'].append(repo)
-                # Add repo to female user
-                elif ownerlogin in femaleresults:
-                    femaleresults[ownerlogin]['repos'].append(repo)
+            repo = [val for val in repo]
+            if ownerlogin in maleresults:
+                #print('testmale')
+                maleresults[ownerlogin][-1].append(repo)
+            # Add repo to female user
+            elif ownerlogin in femaleresults:
+                #print('testfemale')
+                femaleresults[ownerlogin][-1].append(repo)
 
         return maleresults, femaleresults

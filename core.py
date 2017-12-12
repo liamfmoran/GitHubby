@@ -3,6 +3,7 @@ import math
 import gender_guesser.detector as gender
 import sys
 import os
+import statistics
 
 sys.path.insert(0, './crawler/')
 
@@ -28,49 +29,6 @@ import bigquery
 #     - Public vs private repos
 
 # NOTE: Maybe we should use this to hold information from a user?
-class Score:
-    """Scores across features for individual users."""
-
-    def __init__(self, userrow):
-
-        # Gender preference
-        self.ismale = False
-
-        # Size
-        self.scoresize = 0
-        self.weightsize = 1
-
-        # Loyalty
-        self.scoreloyalty = 0
-        self.weightloyalty = 1
-
-        # Attention
-        self.scoreattention = 0
-        self.weightattention = 1
-
-        # Money
-        self.scoremoney = 0
-        self.weightmoney = 1
-
-        # Kids
-        self.scorekids = 0
-        self.weightkids = 1
-
-        # Privacy
-        self.scoreprivacy = 0
-        self.weightprivacy = 1
-
-
-    def getsize(self):
-        # Consider number of commits
-        # TODO: Finish this shit here
-        pass
-
-
-    def getloyalty(self):
-        # Consider variance of languages
-        pass
-
 
 bq = bigquery.BigQuery()
 
@@ -117,149 +75,141 @@ def logistic(x, maxnnum):
     val = maxnum / (1 + math.exp(-x))
     return int(val+1)
 
+def normalize(x, max, min):
+    if(x > max):
+        x = max
+    value = (int((x-min)/(max-min)))
+    return int((x-min)/(max-min))+2
+
 
 
 #TO DO: modify to query repo table
-def languages(men, info, importance):
-    for person in men:
-        if person not in info:
+def languages(languages, mate):
+    all_langs = {}
+    for language in languages:
+        rating = 0
+        if len(languages) == 0:
+            rating = 1
+            mates[person].append(rating)
             continue
-        his_langs = {}
-        for i in info[person]:
-            if i not in his_langs:
-                his_langs[i] = 0
-            his_langs[i] +=1
-        sum1 = 0
-        for l in his_langs:
-            sum1 += his_langs[l]
-        mean = float(sum1)/len(his_langs)
-        tots = 0
-        for l in his_langs:
-            tots += (his_langs[l]-mean)**2
-        var = float(tots)+1/len(his_langs)
-        var = logistic(var)
-        men[person] += var
+        if language not in all_langs:
+                all_langs[language] = 0
+        all_langs[language] +=1
+        if len(all_langs) > 1:
+            var = statistics.variance([all_langs[x] for x in all_langs],statistics.mean([all_langs[x] for x in all_langs]))
+            
+            print(var)
+    # print('mate: ',mate)
+    # print(all_langs)
+
+        # his_langs = {}
+        # for i in info[person]:
+        #     if i not in his_langs:
+        #         his_langs[i] = 0
+        #     his_langs[i] +=1
+        # sum1 = 0
+        # for l in his_langs:
+        #     sum1 += his_langs[l]
+        # mean = float(sum1)/len(his_langs)
+        # tots = 0
+        # for l in his_langs:
+        #     tots += (his_langs[l]-mean)**2
+        # var = float(tots)+1/len(his_langs)
+        # var = logistic(var)
+        # men[person] += var
           
         
-    #eturn user_and_language
+
+    
 
 #TO DO: modify to query repo table
-def rank_repo(men, info,does_size_matter,do_you_want_kids,import_loyalty, privacy):
-    stff = {}
+def rank_repo(mates,info,size,loyalty,kids):
+    sizes = {}
     dum = 0
     loyalty = {}
-    for person in info:
-        his_langs = []
-        score =0
-        stff[person] = 0
-        if len(info[person]) == 0:
-            continue
-        while len(info[person]) != 0:
-            num_repos = 0
-            test = json.loads(info[person][0])
-            for l in test:
-                ## DOES SIZE MATTER 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
-                size = l['stats']['total']
-                stff[person] += size
-                num_repos += 1
-                dum += size
-                repo_length = l['length']
-            ##DO YOU WANT KIDS 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
-            fork_count = info[person][1]
+    for person in mates:
+        person_size = 0
+        person_languages = []
+        repos = info[person][19]
+        ## Does Size Matter?
+        ## Gets total line size of all commits a user has made and returns a rank of 1-5
+        ## Size is index 0 of score vector
+        for repo in repos:
+            person_languages.append(repo[16])
+            repo_data = json.loads(repo[10])
+            for data in repo_data:
+                person_size += data['stats']['total']
+        sizes[person] = person_size
+    max_size = statistics.mean([sizes[m] for m in sizes])
+    min_size = min([sizes[m] for m in sizes])
+    languages(person_languages,mates[person])
+    for m in sizes:
+        if sizes[m] == 0:
+            rating = 1
+        else:
+            rating = normalize(sizes[m],max_size,min_size)
+        mates[m].append(rating)
+    ##Now Sizes has been added to the features vector, Next Loyalty. 
+    
 
-            #open_issues = info[person][2]
-            #stargazers_count = info[person][3]
-            his_langs.append(info[person][4])
+            
+        
+    #         for l in test:
+    #             ## DOES SIZE MATTER 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
+    #             size = l['stats']['total']
+    #             stff[person] += size
+    #             num_repos += 1
+    #             dum += size
+    #             repo_length = l['length']
+    #         ##DO YOU WANT KIDS 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
+    #         fork_count = info[person][1]
 
-        #     if stargazers_count !=0:
-        #          score += math.log(stargazers_count)
-        #     if open_issues !=0:
-        #         score -= float(open_issues)/(1+stargazers_count)* math.log10(1+stargazers_count)
-        #         score = float(score)/(repo_length+1)
-        #     info[person] = info[person][5:]
-        # men[person] += score
-        ##HOW IMPORTABT IS PRIVACY == NUM OF HIS REPOS
-        stff[person] = float(stff[person])/num_repos
+    #         #open_issues = info[person][2]
+    #         #stargazers_count = info[person][3]
+    #         his_langs.append(info[person][4])
+    #     ##HOW IMPORTABT IS PRIVACY == NUM OF HIS REPOS
+    #     stff[person] = float(stff[person])/num_repos
 
-        ##HOW IMPORTANT IS LOYALTY == LANGUAGE VARIANCE
-        loyalty[person] = his_langs
-    ## DOES SIZE MATTER?! 
-    if does_size_matter == 'yes':
-        mean = dum/len(stff)
-        for guy in stff:
-            if stff[guy] < mean :
-                men[guy] -= 1
-            if stff[guy] > mean :
-                men[guy] +=1 
-    ## HOW IMPORTANT IS LOYALTY
-        languages(men, loyalty, import_loyalty)
-    res = dict((v, k) for k, v in men.items())
-    sort = sorted(res, reverse=True)[:10]
-    retval = [ { "id": res[guyd] for guyd in sort } ]
-    return [ res[x] for x in sorted(res, reverse=True)[:10] ]
+    #     ##HOW IMPORTANT IS LOYALTY == LANGUAGE VARIANCE
+    #     loyalty[person] = his_langs
+    # ## DOES SIZE MATTER?! 
+    # if does_size_matter == 'yes':
+    #     mean = dum/len(stff)
+    #     for guy in stff:
+    #         if stff[guy] < mean :
+    #             men[guy] -= 1
+    #         if stff[guy] > mean :
+    #             men[guy] +=1 
+    # ## HOW IMPORTANT IS LOYALTY
+    #     languages(men, loyalty, import_loyalty)
+    # res = dict((v, k) for k, v in men.items())
+    # sort = sorted(res, reverse=True)[:10]
+    # retval = [ { "id": res[guyd] for guyd in sort } ]
+    # return [ res[x] for x in sorted(res, reverse=True)[:10] ]
 
 
 
-def find_a_hubby():
+def find_a_hubby(preference,size,loyalty,kids):
     """Queries BigQuery and gets data from men and initalizes score."""
     # TODO: I think BigQuery.queryall can just be called now wihch will sort by gender
     # NOTE: The above should only be done if the local dictionaries are empty
     
     bq = bigquery.BigQuery()
     male, female = bq.queryall()
-
-    d = gender.Detector()
-    men = {}
-    info = {}
-    bq = bigquery.BigQuery()
-    client = bq.client
-    query_job = client.query("""
-    SELECT *
-    FROM `precise-tenure-184101.githubby.users` """)
-    results = query_job.result() 
-    for line in results: 
-        name = line['name']
-        if type(name) is str: 
-            firstname = name.split()[0]
-            sex = d.get_gender(firstname)
-            if sex != 'female' and sex != 'mostly_female':
-                factors = []
-                men[line['owner_login']] = 1
-                factors.append(line['following'])
-                factors.append(line['followers'])
-                factors.append(line['repos_url'])
-                factors.append(line['created_at'])
-                factors.append(line['id'])
-                factors.append(line['name'])
-                factors.append(line['location'])
-                info[line['owner_login']] = factors
-    celeb(men,info)
+    mates = {}
+    ## [SIZE, LOYALTY, KIDS]
+    features = []
+    if preference == 'male':
+        for m in male:
+            mates[m] = []
+            rank_repo(mates,male,size,loyalty,kids)
+    else:
+        for f in female:
+            mates[f] = []
+            rank_repo(mates,female,size,loyalty,kids)
     
-    return men, info
+
 ##USED FOR BIG QUERY PARSING IGNORE FOR NOW 
-def get_his_repos(men):
-    bq = bigquery.BigQuery()
-    client = bq.client
-    his_repos = {}
-    f1 = open('repos.json',"w+")
-    for user in men: 
-        query_job = bq.client.query("""
-        SELECT *
-        FROM `precise-tenure-184101.githubby.repos`
-        WHERE owner_login=\'""" + user+ "\'")
-        results = query_job.result()
-        requirements = []
-        for line in results:
-            requirements.append(line['commits'])
-            requirements.append(line['forks_count'])
-            requirements.append(line['open_issues_count'])
-            requirements.append(line['stargazers_count'])
-            requirements.append(line['langauge'])
-        his_repos[user] = requirements
-        f1.write(json.dumps({"user":user, "info":his_repos[user]}))
-        f1.write('\n')
-    f1.close()
-    return his_repos
 
 def them_repos_though(men,info,does_size_matter,do_you_want_kids,import_loyalty, privacy):
   with open('repos.json') as data:
@@ -279,16 +229,8 @@ def them_repos_though(men,info,does_size_matter,do_you_want_kids,import_loyalty,
     return boyyyss
 
 
-
-
 #repos = get_his_repos(hubbies)
-
-# with open('repos.json') as data:
-#     repos = {}
-#     for line in data:
-#         s = json.loads(line)
-#         repos[s['user']] = s['info']
-#     print(repos) 
+print(find_a_hubby('female',5,5,5))
 ##GOT ALL INFO FROM REPOS, CAN NOW DO OFFLINE ANALYSIS FOR HUBBY SCORE
 ##GOT DATA NEEDED FOR HUBBIES OTHER FEATURES, CAN NOW COMPUTE OFFLINE SCORE.
 ##LET'S EFFING GO
