@@ -16,7 +16,7 @@ def eucliddist(a, b):
     zipped = zip(a, b)
 
     for tup in zipped:
-        total += (a - b) ** 2
+        total += (tup[0] - tup[1]) ** 2
 
     return total ** (1/2)
 
@@ -98,14 +98,6 @@ def query(preference, age, size, loyalty, attention, money, kids, privacy):
     # Now we have the users, so let's get distances
 
 
-##Popularity
-def celeb(men, info):
-    for person in info:
-        fact = info[person]
-        if fact[0] <= fact[1]:
-            men[person] += 1
-
-
 def logistic(x, maxnnum):
     """Normalizes a value to be between 1 and maxnum."""
     val = maxnum / (1 + math.exp(-x))
@@ -147,7 +139,7 @@ def languages(languages, mate):
         return 5
     return var
 
-def rank_repo(mates,info,size,loyalty,kids):
+def rank_repo(mates,info):
     sizes = {}
     variances = {}
     salaries = {}
@@ -206,28 +198,38 @@ def rank_repo(mates,info,size,loyalty,kids):
     min_rep = min([num_repos[x] for x in num_repos])
     for r in num_repos:
         mates[r].append(normalizer(num_repos[r],max_rep,min_rep))
-    # for m in mates:
-    #     print(m, mates[m])
+    return mates
 
-def find_a_hubby(preference,size,loyalty,kids):
+def find_a_hubby(preference,size,loyalty,kids,salary,attention):
     """Queries BigQuery and gets data from men and initalizes score."""
     # TODO: I think BigQuery.queryall can just be called now wihch will sort by gender
     # NOTE: The above should only be done if the local dictionaries are empty
-    
+    users_choices = []
+    users_choices.append(size)
+    users_choices.append(loyalty)
+    users_choices.append(kids)
+    users_choices.append(salary)
+    users_choices.append(attention)
+
     bq = bigquery.BigQuery()
     male, female = bq.queryall()
     mates = {}
+    distances = {}
     ## [SIZE, LOYALTY, KIDS, SALARY, ATTENTION]
-    features = []
+    
     if preference == 'male':
         for m in male:
             mates[m] = []
-        rank_repo(mates,male,size,loyalty,kids)
+        rank_repo(mates,male)
     else:
         for f in female:
             mates[f] = []
-        rank_repo(mates,female,size,loyalty,kids)
-        #print(mates)
+        rank_repo(mates,female)
+    for mate in mates:
+        dist = eucliddist(mates[mate], users_choices)
+        distances[mate] = dist
+    print(sorted(distances.items(), key=lambda x: x[1] ))
+        
     
 
 ##USED FOR BIG QUERY PARSING IGNORE FOR NOW 
@@ -251,7 +253,7 @@ def them_repos_though(men,info,does_size_matter,do_you_want_kids,import_loyalty,
 
 
 #repos = get_his_repos(hubbies)
-print(find_a_hubby('female',5,5,5))
+print(find_a_hubby('male',5,5,5,5,5))
 ##GOT ALL INFO FROM REPOS, CAN NOW DO OFFLINE ANALYSIS FOR HUBBY SCORE
 ##GOT DATA NEEDED FOR HUBBIES OTHER FEATURES, CAN NOW COMPUTE OFFLINE SCORE.
 ##LET'S EFFING GO
