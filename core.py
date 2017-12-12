@@ -4,10 +4,36 @@ import gender_guesser.detector as gender
 import sys
 import os
 import statistics
+from collections import Counter
 
 sys.path.insert(0, './crawler/')
 
 import bigquery
+
+
+def langaugesalary(language):
+    salaries = {
+        'Java': 130,
+        'Objective-C': 112,
+        'Python': 105,
+        'C++': 102,
+        'Perl': 100,
+        'C': 100,
+        'R': 99,
+        'JavaScript': 92,
+        'CoffeeScript': 82,
+        'Ruby': 89,
+        'HTML': 60,
+        'PHP': 89,
+        'C#': 89,
+        'Swift': 115,
+        'SQL': 80 
+    }
+
+    if language not in salaries:
+        return 84
+
+    return salaries[language]
 
 
 # TODO: Implement these metrics for score
@@ -88,6 +114,12 @@ def normalize(x, max, min):
     return int((x-min)/(max-min))+2
 
 
+def getsalary(languages):
+    if len(languages) == 0:
+        return 84
+    langauge, _ = Counter(languages).most_common(1)[0]
+    return langaugesalary(langauge)
+
 
 #TO DO: modify to query repo table
 def languages(languages, mate):
@@ -108,6 +140,7 @@ def languages(languages, mate):
 def rank_repo(mates,info,size,loyalty,kids):
     sizes = {}
     variances = {}
+    salaries = {}
     dum = 0
     loyalty = {}
     for person in mates:
@@ -124,6 +157,7 @@ def rank_repo(mates,info,size,loyalty,kids):
                 person_size += data['stats']['total']
         sizes[person] = person_size
         variances[person] = languages(person_languages,mates[person])
+        salaries[person] = getsalary(person_languages)
     max_size = statistics.mean([sizes[m] for m in sizes])
     min_size = min([sizes[m] for m in sizes])
     for m in sizes:
@@ -137,7 +171,12 @@ def rank_repo(mates,info,size,loyalty,kids):
     min_var = min([variances[x] for x in variances])
     for v in variances:
         mates[v].append(6-normalizer(variances[v],max_var,min_var))
-        print(variances[v],mates[v])
+        # print(variances[v],mates[v])
+        
+    max_sal = max([salaries[x] for x in salaries])
+    min_sal = min([salaries[x] for x in salaries])
+    for s in salaries:
+        mates[s].append(normalizer(salaries[s], max_sal, min_sal))
     
     
 
