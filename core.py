@@ -76,6 +76,8 @@ def logistic(x, maxnnum):
     return int(val+1)
 
 def normalizer(x, maxval, minval):
+    if maxval == minval:
+        return 5
     val = int((x-minval)/(maxval-minval)*5)+1
     return 5 if val > 5 else val
 
@@ -90,62 +92,22 @@ def normalize(x, max, min):
 #TO DO: modify to query repo table
 def languages(languages, mate):
     all_langs = {}
-    vals = []
     for language in languages:
         rating = 0
         if len(languages) == 0:
-            rating = 1
-            mates[person].append(rating)
-            continue
+            return 1
         if language not in all_langs:
                 all_langs[language] = 0
         all_langs[language] +=1
-        if len(all_langs) > 1:
-            var = statistics.variance([all_langs[x] for x in all_langs],statistics.mean([all_langs[x] for x in all_langs]))
-            vals.append(var)
+    if len(all_langs) > 1:
+        var = statistics.variance([all_langs[x] for x in all_langs],statistics.mean([all_langs[x] for x in all_langs]))
+    else:
+        return 5
+    return var
 
-    if len(vals) > 1:
-        maxval = max(vals)
-        minval = min(vals)
-
-        # print(':', val, maxval, minval, normalizer(val, maxval, minval))
-        vals = [normalizer(val, maxval, minval) for val in vals]
-
-        for val in vals:
-            print(val)
-
-        # vals = [normalizer(x, maxval, minval) for x in vals]
-
-    # for val in vals:
-    #   print('val:', val)
-
-
-    # print('mate: ',mate)
-    # print(all_langs)
-
-        # his_langs = {}
-        # for i in info[person]:
-        #     if i not in his_langs:
-        #         his_langs[i] = 0
-        #     his_langs[i] +=1
-        # sum1 = 0
-        # for l in his_langs:
-        #     sum1 += his_langs[l]
-        # mean = float(sum1)/len(his_langs)
-        # tots = 0
-        # for l in his_langs:
-        #     tots += (his_langs[l]-mean)**2
-        # var = float(tots)+1/len(his_langs)
-        # var = logistic(var)
-        # men[person] += var
-          
-        
-
-    
-
-#TO DO: modify to query repo table
 def rank_repo(mates,info,size,loyalty,kids):
     sizes = {}
+    variances = {}
     dum = 0
     loyalty = {}
     for person in mates:
@@ -161,16 +123,22 @@ def rank_repo(mates,info,size,loyalty,kids):
             for data in repo_data:
                 person_size += data['stats']['total']
         sizes[person] = person_size
+        variances[person] = languages(person_languages,mates[person])
     max_size = statistics.mean([sizes[m] for m in sizes])
     min_size = min([sizes[m] for m in sizes])
-    languages(person_languages,mates[person])
     for m in sizes:
         if sizes[m] == 0:
             rating = 1
         else:
             rating = normalize(sizes[m],max_size,min_size)
         mates[m].append(rating)
-    ##Now Sizes has been added to the features vector, Next Loyalty. 
+    ##Now Sizes has been added to the features vector, Next Loyalty
+    max_var = max([variances[x] for x in variances])
+    min_var = min([variances[x] for x in variances])
+    for v in variances:
+        mates[v].append(6-normalizer(variances[v],max_var,min_var))
+        print(variances[v],mates[v])
+    
     
 
             
@@ -223,11 +191,12 @@ def find_a_hubby(preference,size,loyalty,kids):
     if preference == 'male':
         for m in male:
             mates[m] = []
-            rank_repo(mates,male,size,loyalty,kids)
+        rank_repo(mates,male,size,loyalty,kids)
     else:
         for f in female:
             mates[f] = []
-            rank_repo(mates,female,size,loyalty,kids)
+        rank_repo(mates,female,size,loyalty,kids)
+        #print(mates)
     
 
 ##USED FOR BIG QUERY PARSING IGNORE FOR NOW 
@@ -251,7 +220,7 @@ def them_repos_though(men,info,does_size_matter,do_you_want_kids,import_loyalty,
 
 
 #repos = get_his_repos(hubbies)
-print(find_a_hubby('female',5,5,5))
+print(find_a_hubby('male',5,5,5))
 ##GOT ALL INFO FROM REPOS, CAN NOW DO OFFLINE ANALYSIS FOR HUBBY SCORE
 ##GOT DATA NEEDED FOR HUBBIES OTHER FEATURES, CAN NOW COMPUTE OFFLINE SCORE.
 ##LET'S EFFING GO
