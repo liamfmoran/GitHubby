@@ -202,62 +202,48 @@ def rank_repo(mates,info):
 
 def find_a_hubby(preference,size,loyalty,kids,salary,attention):
     """Queries BigQuery and gets data from men and initalizes score."""
-    # TODO: I think BigQuery.queryall can just be called now wihch will sort by gender
-    # NOTE: The above should only be done if the local dictionaries are empty
-    users_choices = []
-    users_choices.append(size)
-    users_choices.append(loyalty)
-    users_choices.append(kids)
-    users_choices.append(salary)
-    users_choices.append(attention)
 
-    bq = bigquery.BigQuery()
+    users_choices = []
+    users_choices.append(5 if size == 'Yes' else 1)
+    users_choices.append(int(loyalty))
+    users_choices.append(5 if kids == 'Yes' else 1)
+    users_choices.append(int(salary))
+    users_choices.append(int(attention))
+
+    print(users_choices)
+    print(preference)
+
     male, female = bq.queryall()
     mates = {}
     distances = {}
     ## [SIZE, LOYALTY, KIDS, SALARY, ATTENTION]
+
+    users = None
     
-    if preference == 'male':
+    if preference == 'man':
         for m in male:
             mates[m] = []
         rank_repo(mates,male)
+        users = male
     else:
         for f in female:
             mates[f] = []
         rank_repo(mates,female)
+        users = female
     for mate in mates:
         dist = eucliddist(mates[mate], users_choices)
         distances[mate] = dist
-    print(sorted(distances.items(), key=lambda x: x[1] ))
-        
-    
+    top = sorted(distances.items(), key=lambda x: x[1])[:10]
 
-##USED FOR BIG QUERY PARSING IGNORE FOR NOW 
+    retval = []
 
-def them_repos_though(men,info,does_size_matter,do_you_want_kids,import_loyalty, privacy):
-  with open('repos.json') as data:
-    repos = {}
-    mans = {}
-    for line in data:
-        s = json.loads(line)
-        mans[s['user']] = { 'id': info[s['user']][4], 'name': info[s['user']][5], 'username': s['user'], 'location': info[s['user']][6], 'email': 'godcoder@google.com'}
-        repos[s['user']] = s['info']
+    for user in top:
+        val = {}
+        val['id'] = users[user[0]][0]
+        val['name'] = users[user[0]][9]
+        val['username'] = users[user[0]][1]
+        val['location'] = users[user[0]][12]
+        val['email'] = 'email@gmail.com'
+        retval.append(val)
 
-    topmen = rank_repo(men, repos,does_size_matter,do_you_want_kids,import_loyalty, privacy) 
-
-    boyyyss = []
-    for man in topmen:
-        boyyyss.append(mans[man])
-    
-    return boyyyss
-
-
-#repos = get_his_repos(hubbies)
-print(find_a_hubby('male',5,5,5,5,5))
-##GOT ALL INFO FROM REPOS, CAN NOW DO OFFLINE ANALYSIS FOR HUBBY SCORE
-##GOT DATA NEEDED FOR HUBBIES OTHER FEATURES, CAN NOW COMPUTE OFFLINE SCORE.
-##LET'S EFFING GO
-
-        
-
-        
+    return retval

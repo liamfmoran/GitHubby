@@ -1,10 +1,12 @@
+import sys
+
+sys.path.insert(0, './../')
+
 import core
 
 
 def getMatches(preference, age, size, loyalty, attention, money, kids, privacy):
-    matches = []
-    hubbies, info = core.find_a_hubby()
-    men = core.them_repos_though(hubbies,info, size,kids,loyalty, privacy)[0:4]
+    matches = core.find_a_hubby(preference, size, loyalty, kids, money, attention)[:5]
 
     # user = {
     #     "id" : "17077365",
@@ -16,4 +18,4 @@ def getMatches(preference, age, size, loyalty, attention, money, kids, privacy):
 
     # matches.append(user)
 
-    return men
+    return matches
