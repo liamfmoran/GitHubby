@@ -12,7 +12,7 @@ _Like Tinder, but for women looking for commitment._
 #### API Authenticaion
 
 - Generate a `creds.json` file for [Google Cloud API Authentication](https://cloud.google.com/docs/authentication/getting-started)
-- Create a `tokens.txt` file for [GitHub Personal API Tokens](https://github.com/blog/1509-personal-api-tokens) with one token per line
+- Create a `token.txt` file for [GitHub Personal API Tokens](https://github.com/blog/1509-personal-api-tokens) with one token per line
 - Place both of the above files in the `./crawler/` directory
 
 ### On Windows
