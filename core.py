@@ -108,10 +108,10 @@ def languages(languages, mate):
 def rank_repo(mates,info,size,loyalty,kids):
     sizes = {}
     variances = {}
-    dum = 0
-    loyalty = {}
+    forks = {}
     for person in mates:
         person_size = 0
+        person_forks = 0
         person_languages = []
         repos = info[person][19]
         ## Does Size Matter?
@@ -120,10 +120,12 @@ def rank_repo(mates,info,size,loyalty,kids):
         for repo in repos:
             person_languages.append(repo[16])
             repo_data = json.loads(repo[10])
+            person_forks += repo[18]
             for data in repo_data:
                 person_size += data['stats']['total']
         sizes[person] = person_size
         variances[person] = languages(person_languages,mates[person])
+        forks[person] = person_forks
     max_size = statistics.mean([sizes[m] for m in sizes])
     min_size = min([sizes[m] for m in sizes])
     for m in sizes:
@@ -137,19 +139,15 @@ def rank_repo(mates,info,size,loyalty,kids):
     min_var = min([variances[x] for x in variances])
     for v in variances:
         mates[v].append(6-normalizer(variances[v],max_var,min_var))
-        print(variances[v],mates[v])
+    ##Kids, also known as Fork_Count
+    for f in forks:
+        if forks[f] > 0:
+            mates[f].append(5)
+        else:
+            mates[f].append(1)
     
-    
-
-            
-        
-    #         for l in test:
-    #             ## DOES SIZE MATTER 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
-    #             size = l['stats']['total']
-    #             stff[person] += size
-    #             num_repos += 1
-    #             dum += size
-    #             repo_length = l['length']
+    for m in mates:
+        print(m,mates[m])
     #         ##DO YOU WANT KIDS 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
     #         fork_count = info[person][1]
 
@@ -220,7 +218,7 @@ def them_repos_though(men,info,does_size_matter,do_you_want_kids,import_loyalty,
 
 
 #repos = get_his_repos(hubbies)
-print(find_a_hubby('male',5,5,5))
+print(find_a_hubby('female',5,5,5))
 ##GOT ALL INFO FROM REPOS, CAN NOW DO OFFLINE ANALYSIS FOR HUBBY SCORE
 ##GOT DATA NEEDED FOR HUBBIES OTHER FEATURES, CAN NOW COMPUTE OFFLINE SCORE.
 ##LET'S EFFING GO
