@@ -11,6 +11,16 @@ sys.path.insert(0, './crawler/')
 import bigquery
 
 
+def eucliddist(a, b):
+    total = 0
+    zipped = zip(a, b)
+
+    for tup in zipped:
+        total += (a - b) ** 2
+
+    return total ** (1/2)
+
+
 def langaugesalary(language):
     salaries = {
         'Java': 130,
