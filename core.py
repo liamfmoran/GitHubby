@@ -144,15 +144,18 @@ def rank_repo(mates,info,size,loyalty,kids):
     dum = 0
     loyalty = {}
     forks = {}
+    num_repos = {}
     for person in mates:
         person_size = 0
         person_forks = 0
+        person_repos = 0
         person_languages = []
         repos = info[person][19]
         ## Does Size Matter?
         ## Gets total line size of all commits a user has made and returns a rank of 1-5
         ## Size is index 0 of score vector
         for repo in repos:
+            person_repos += 1
             person_languages.append(repo[16])
             repo_data = json.loads(repo[10])
             person_forks += repo[18]
@@ -162,6 +165,7 @@ def rank_repo(mates,info,size,loyalty,kids):
         variances[person] = languages(person_languages,mates[person])
         salaries[person] = getsalary(person_languages)
         forks[person] = person_forks
+        num_repos[person] = person_repos
     max_size = statistics.mean([sizes[m] for m in sizes])
     min_size = min([sizes[m] for m in sizes])
     for m in sizes:
@@ -188,35 +192,12 @@ def rank_repo(mates,info,size,loyalty,kids):
     for s in salaries:
         mates[s].append(normalizer(salaries[s], max_sal, min_sal))
     
-    for m in mates:
-        print(m,mates[m])
-    #         ##DO YOU WANT KIDS 'YES' OR 'NO' (NO WILL BE A 1 AND YES WILL BE A 5)
-    #         fork_count = info[person][1]
-
-    #         #open_issues = info[person][2]
-    #         #stargazers_count = info[person][3]
-    #         his_langs.append(info[person][4])
-    #     ##HOW IMPORTABT IS PRIVACY == NUM OF HIS REPOS
-    #     stff[person] = float(stff[person])/num_repos
-
-    #     ##HOW IMPORTANT IS LOYALTY == LANGUAGE VARIANCE
-    #     loyalty[person] = his_langs
-    # ## DOES SIZE MATTER?! 
-    # if does_size_matter == 'yes':
-    #     mean = dum/len(stff)
-    #     for guy in stff:
-    #         if stff[guy] < mean :
-    #             men[guy] -= 1
-    #         if stff[guy] > mean :
-    #             men[guy] +=1 
-    # ## HOW IMPORTANT IS LOYALTY
-    #     languages(men, loyalty, import_loyalty)
-    # res = dict((v, k) for k, v in men.items())
-    # sort = sorted(res, reverse=True)[:10]
-    # retval = [ { "id": res[guyd] for guyd in sort } ]
-    # return [ res[x] for x in sorted(res, reverse=True)[:10] ]
-
-
+    max_rep = max([num_repos[x] for x in num_repos])
+    min_rep = min([num_repos[x] for x in num_repos])
+    for r in num_repos:
+        mates[r].append(normalizer(num_repos[r],max_rep,min_rep))
+    # for m in mates:
+    #     print(m, mates[m])
 
 def find_a_hubby(preference,size,loyalty,kids):
     """Queries BigQuery and gets data from men and initalizes score."""
@@ -226,7 +207,7 @@ def find_a_hubby(preference,size,loyalty,kids):
     bq = bigquery.BigQuery()
     male, female = bq.queryall()
     mates = {}
-    ## [SIZE, LOYALTY, KIDS]
+    ## [SIZE, LOYALTY, KIDS, SALARY, ATTENTION]
     features = []
     if preference == 'male':
         for m in male:
